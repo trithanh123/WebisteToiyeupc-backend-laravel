@@ -2,45 +2,41 @@
 
 namespace App\Models;
 
+use Database\Factories\KhuyenMaiFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+
 class khuyen_mai extends Model
 {
     use HasFactory;
-    // 1. CẤU HÌNH BẢNG
-    protected $table = 'khuyen_mai';
+
+    protected $table      = 'khuyen_mai';
     protected $primaryKey = 'id_khuyenmai';
 
-    // 2. KHAI BÁO CÁC TRƯỜNG ĐƯỢC PHÉP CHÈN DỮ LIỆU
+    protected static function newFactory(): KhuyenMaiFactory
+    {
+        return KhuyenMaiFactory::new();
+    }
+
     protected $fillable = [
-        'TenKhuyenMai',
-        'Ma_voucher',
-        'Loai_giamgia',      // Kiểu chuỗi ENUM ('Phần trăm', 'Số tiền')
-        'gia_trigiam',  // Bổ sung: Số tiền hoặc số % sẽ được giảm
-        'don_toithieu',
-        'giam_toida',
-        'Soluongma',
-        'dasudung',
-        'Ngaybdchuongtrinh',
-        'Ngayketthucchuongtrinh',
+        'ma_voucher', 'tenkhuyenmai', 'loai_giamgia',
+        'gia_trigiam', 'don_toithieu', 'giam_toida',
+        'soluongma', 'dasudung',
+        'ngaybdchuongtrinh', 'ngayketthucchuongtrinh',
     ];
 
-    // 3. ÉP KIỂU DỮ LIỆU (Đã gỡ bỏ GiamGia, thêm gia_trigiam)
     protected $casts = [
-        'gia_trigiam' => 'Biginteger',
-        'don_toithieu' => 'Biginteger',
-        'giam_toida' => 'Biginteger',
-        'Soluongma' => 'integer',
-        'dasudung' => 'integer',
-        'Ngaybdchuongtrinh' => 'datetime',
-        'Ngayketthucchuongtrinh' => 'datetime',
+        'gia_trigiam'             => 'integer',
+        'don_toithieu'            => 'integer',
+        'giam_toida'              => 'integer',
+        'soluongma'               => 'integer',
+        'dasudung'                => 'integer',
+        'ngaybdchuongtrinh'       => 'datetime',
+        'ngayketthucchuongtrinh'  => 'datetime',
     ];
-    // 4. THIẾT LẬP CÁC MỐI QUAN HỆ ĐẦU RA
-    /**
-     * Mối quan hệ 1-Nhiều: Một mã khuyến mãi có thể áp dụng cho nhiều Đơn hàng
-     */
+
     public function donHang()
     {
-        return $this->hasMany(DonHang::class, 'MaKhuyenMai', 'id_khuyenmai');
+        return $this->hasMany(don_hang::class, 'ma_khuyenmai', 'id_khuyenmai');
     }
 }

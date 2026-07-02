@@ -6,41 +6,29 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
-      Schema::create('danh_gia', function (Blueprint $table) {
-            $table->integer('id_danhgia')->autoIncrement(); // Khóa chính
-            
-            // Các khóa ngoại
-            $table->unsignedBigInteger('MaNguoiDung');
-            $table->unsignedBigInteger('MaSanPham');
-            
-            $table->integer('Danhgia');
-            $table->text('Binhluan')->nullable(); 
-            
+        Schema::create('danh_gia', function (Blueprint $table) {
+            $table->integer('id_danhgia')->autoIncrement();
+            $table->unsignedBigInteger('ma_nguoidung');
+            $table->unsignedBigInteger('ma_sanpham');
+            $table->integer('danhgia');
+            $table->text('binhluan')->nullable();
             $table->dateTime('thoigiantao')->useCurrent();
-            
             $table->timestamps();
 
-            // Ràng buộc khóa ngoại
-            $table->foreign('MaNguoiDung')
-                  ->references('id_NguoiDung')
+            $table->foreign('ma_nguoidung')
+                  ->references('id_nguoidung')
                   ->on('nguoi_dung')
                   ->onDelete('cascade');
-                  
-            $table->foreign('MaSanPham')
-                  ->references('ID_SanPham')
+
+            $table->foreign('ma_sanpham')
+                  ->references('id_sanpham')
                   ->on('san_pham')
                   ->onDelete('cascade');
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('danh_gia');

@@ -2,45 +2,42 @@
 
 namespace App\Models;
 
+use Database\Factories\DiaChiNguoiDungFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+
 class diachi_nguoidung extends Model
 {
     use HasFactory;
-    // 1. CẤU HÌNH BẢNG (Khớp với khóa chính và tên bảng đã liên kết ở model User/DonHang)
-    protected $table = 'diachi_nguoidung';
-    protected $primaryKey = 'ID_DiaChiNguoiDung';
 
-    // 2. KHAI BÁO CÁC TRƯỜNG ĐƯỢC PHÉP CHÈN DỮ LIỆU HÀNG LOẠT
+    protected $table      = 'diachi_nguoidung';
+    protected $primaryKey = 'id_diachinguoidung';
+
     protected $fillable = [
-        'id_nguoidung',
-        'Ten_NguoiNhan',
-        'SDT_NguoiNhan',
-        'DiaChi_ChiTiet',
-        'is_default',
+        'id_nguoidung', 'ten_nguoinhan', 'sdt_nguoinhan',
+        'ma_thanhpho', 'ma_quan', 'ma_phuong',
+        'diachi_chitiet', 'matudien_diachi',
     ];
 
-    // Ép kiểu dữ liệu cho trạng thái địa chỉ mặc định
     protected $casts = [
-        'is_default' => 'boolean',
+        'matudien_diachi' => 'boolean',
+        'ma_thanhpho'     => 'integer',
+        'ma_quan'         => 'integer',
+        'ma_phuong'       => 'integer',
     ];
-    // 3. THIẾT LẬP CÁC MỐI QUAN HỆ KHÓA NGOẠI (BELONGS TO)
 
-    /**
-     * Mối quan hệ N-1: Địa chỉ thuộc về một Người dùng (Khách hàng) cụ thể
-     */
-    public function user()
+    protected static function newFactory(): DiaChiNguoiDungFactory
     {
-        return $this->belongsTo(User::class, 'id_nguoidung', 'id_NguoiDung');
+        return DiaChiNguoiDungFactory::new();
     }
 
-    // 4. THIẾT LẬP CÁC QUAN HỆ ĐẦU RA (HAS MANY)
+    public function nguoiDung()
+    {
+        return $this->belongsTo(Nguoi_dung::class, 'id_nguoidung', 'id_nguoidung');
+    }
 
-    /**
-     * Mối quan hệ 1-Nhiều: Một địa chỉ lưu sẵn có thể được áp dụng vào nhiều Đơn hàng khác nhau khi đặt mua
-     */
     public function donHang()
     {
-        return $this->hasMany(DonHang::class, 'MaDiachinguoidung', 'ID_DiaChiNguoiDung');
+        return $this->hasMany(don_hang::class, 'ma_diachinguoidung', 'id_diachinguoidung');
     }
 }

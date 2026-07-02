@@ -2,44 +2,38 @@
 
 namespace App\Models;
 
+use Database\Factories\DanhGiaFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+
 class danh_gia extends Model
 {
     use HasFactory;
-    // cấu hình bảng
-    protected $table = 'danh_gia';
-    protected $primaryKey = 'id_DanhGia';
 
-    // 2. KHAI BÁO CÁC TRƯỜNG ĐƯỢC PHÉP CHÈN DỮ LIỆU
+    protected $table      = 'danh_gia';
+    protected $primaryKey = 'id_danhgia';
+
     protected $fillable = [
-        'MaNguoiDung',
-        'MaSanPham',
-        'Danhgia',
-        'Binhluan',
-        'thoigiantao',
+        'ma_nguoidung', 'ma_sanpham', 'danhgia', 'binhluan', 'thoigiantao',
     ];
 
-    // Ép kiểu dữ liệu để dễ dàng thao tác tính toán số sao và định dạng ngày giờ
     protected $casts = [
-        'Danhgia' => 'integer',
+        'danhgia'    => 'integer',
         'thoigiantao' => 'datetime',
     ];
-    // 3. THIẾT LẬP CÁC MỐI QUAN HỆ KHÓA NGOẠI (BELONGS TO)
 
-    /**
-     * Mối quan hệ N-1: Một đánh giá là do 1 Người dùng (Khách hàng) viết ra
-     */
-    public function user()
+    protected static function newFactory(): DanhGiaFactory
     {
-        return $this->belongsTo(User::class, 'MaNguoiDung', 'id_NguoiDung');
+        return DanhGiaFactory::new();
     }
 
-    /**
-     * Mối quan hệ N-1: Một đánh giá là dành cho 1 Sản phẩm cụ thể
-     */
+    public function nguoiDung()
+    {
+        return $this->belongsTo(Nguoi_dung::class, 'ma_nguoidung', 'id_nguoidung');
+    }
+
     public function sanPham()
     {
-        return $this->belongsTo(SanPham::class, 'MaSanPham', 'ID_SanPham');
+        return $this->belongsTo(san_pham::class, 'ma_sanpham', 'id_sanpham');
     }
 }

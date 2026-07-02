@@ -9,40 +9,34 @@ return new class extends Migration
 {
     public function up(): void
     {
-        // 1. Kích hoạt extension vector của PostgreSQL
-        //DB::statement('CREATE EXTENSION IF NOT EXISTS vector;');
+        DB::statement('CREATE EXTENSION IF NOT EXISTS vector;');
 
-        // 2. Tạo bảng Sản Phẩm
         Schema::create('san_pham', function (Blueprint $table) {
-            $table->id('ID_SanPham'); // Khóa chính
-            
-            // Cột khóa ngoại (phải cùng kiểu unsignedBigInteger với ID_DanhMuc)
-            $table->unsignedBigInteger('Ma_DanhMuc');
-            
-            $table->string('MaSP', 100)->unique();
-            $table->string('TenSP', 255);
-            $table->bigInteger('Gia');
-            $table->string('Thumbail', 255)->nullable();
-            $table->text('Motasanpham')->nullable();
-            
-            // Trường JSONB lưu thông số kỹ thuật động
+            $table->id('id_sanpham');
+            $table->unsignedBigInteger('ma_danhmuc');
+            $table->string('masp', 100)->unique();
+            $table->string('tensp', 255);
+            $table->bigInteger('gia');
+            $table->string('thumbail', 255)->nullable();
+            $table->text('motasanpham')->nullable();
             $table->jsonb('specifications')->nullable();
-            
             $table->timestamps();
 
-            // Ràng buộc khóa ngoại trỏ về bảng danh_muc
-            $table->foreign('Ma_DanhMuc')
-                  ->references('ID_DanhMuc')
+            $table->foreign('ma_danhmuc')
+                  ->references('id_danhmuc')
                   ->on('danh_muc')
                   ->onDelete('cascade');
         });
 
-        // 3. Thêm cột lưu Vector 1536 chiều đúng chuẩn ERD
-       // DB::statement('ALTER TABLE san_pham ADD COLUMN embedding vector(1536);');
+        DB::statement('ALTER TABLE san_pham ADD COLUMN embedding vector(768);');
+        DB::statement('CREATE INDEX san_pham_embedding_hnsw_idx ON san_pham USING hnsw (embedding vector_cosine_ops);');
+        DB::statement('CREATE INDEX san_pham_specifications_gin_idx ON san_pham USING gin (specifications);');
     }
 
     public function down(): void
     {
+        DB::statement('DROP INDEX IF EXISTS san_pham_embedding_hnsw_idx;');
+        DB::statement('DROP INDEX IF EXISTS san_pham_specifications_gin_idx;');
         Schema::dropIfExists('san_pham');
     }
 };

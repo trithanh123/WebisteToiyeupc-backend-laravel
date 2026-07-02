@@ -6,45 +6,28 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::create('don_hang', function (Blueprint $table) {
-           $table->unsignedBigInteger('id_DonHang', true);
-            
-            // 1. Các cột để chứa khóa ngoại
-            $table->unsignedBigInteger('MaNguoiDung');
-            $table->unsignedBigInteger('MaChiNhanh');
-            $table->integer('MaKhuyenMai')->nullable(); // Để nullable vì khách có thể không xài mã giảm giá
-            $table->unsignedBigInteger('MaDiachinguoidung');
-
-            // 2. Các cột thông tin đơn hàng
-            $table->bigInteger('TongTien');
-            $table->string('Phuong_thuc_TT', 50);
-            $table->string('Trang_thai_DH', 50);
+            $table->id('id_donhang');
+            $table->unsignedBigInteger('ma_nguoidung');
+            $table->unsignedBigInteger('ma_chinhanh');
+            $table->integer('ma_khuyenmai')->nullable();
+            $table->unsignedBigInteger('ma_diachinguoidung');
+            $table->bigInteger('tongtien');
+            $table->string('phuong_thuc_tt', 50);
+            $table->string('trang_thai_dh', 50);
             $table->text('ghichu')->nullable();
-            
-            // Cột thời gian đặt hàng 
             $table->timestamp('thoigiandathang')->useCurrent();
-            
             $table->timestamps();
 
-            // 3. Khai báo 4 ràng buộc khóa ngoại (Vì các bảng kia đã tạo xong nên giờ nối thoải mái)
-            $table->foreign('MaNguoiDung')->references('id_NguoiDung')->on('nguoi_dung')->onDelete('cascade');
-            $table->foreign('MaChiNhanh')->references('iD_ChiNhanh')->on('chi_nhanh')->onDelete('cascade');
-            
-            // Nếu mã khuyến mãi bị xóa, đơn hàng cũ vẫn giữ lại nhưng cột này sẽ thành null
-            $table->foreign('MaKhuyenMai')->references('id_khuyenmai')->on('khuyen_mai')->onDelete('set null'); 
-            
-            $table->foreign('MaDiachinguoidung')->references('ID_DiaChiNguoiDung')->on('diachi_nguoidung')->onDelete('cascade');
+            $table->foreign('ma_nguoidung')->references('id_nguoidung')->on('nguoi_dung')->onDelete('cascade');
+            $table->foreign('ma_chinhanh')->references('id_chinhanh')->on('chi_nhanh')->onDelete('cascade');
+            $table->foreign('ma_khuyenmai')->references('id_khuyenmai')->on('khuyen_mai')->onDelete('set null');
+            $table->foreign('ma_diachinguoidung')->references('id_diachinguoidung')->on('diachi_nguoidung')->onDelete('cascade');
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('don_hang');

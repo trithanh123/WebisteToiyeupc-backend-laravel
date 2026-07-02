@@ -2,35 +2,33 @@
 
 namespace App\Models;
 
+use Database\Factories\SanPhamSerialFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class sanpham_serials extends Model
 {
     use HasFactory;
-    //cấu hình bảng
-    protected $table = 'sanpham_serials';
-    protected $primaryKey = 'ID_Serial';
-    // 2. KHAI BÁO CÁC TRƯỜNG ĐƯỢC PHÉP THÊM DỮ LIỆU
-    protected $fillable = [
-        'MaTonKho',
-        'serial_code',
-        'tinhtrang',
-        'Min_Soluongkho',
-        'Ngaycuthe',
-    ];
-    // Ép kiểu dữ liệu để dễ dàng thao tác tính toán và định dạng ngày tháng
-    protected $casts = [
-        'Min_Soluongkho' => 'integer',
-        'Ngaycuthe' => 'datetime',
-    ];
-    // 3. THIẾT LẬP CÁC MỐI QUAN HỆ KHÓA NGOẠI (BELONGS TO)
 
-    /**
-     * Mối quan hệ N-1: Một mã Serial cụ thể sẽ nằm trong một lô Tồn kho cục bộ 
-     * (Từ đây có thể truy ngược ra mã Serial này đang ở Chi nhánh nào và thuộc Sản phẩm gì)
-     */
+    protected $table      = 'sanpham_serials';
+    protected $primaryKey = 'id_serial';
+
+    protected $fillable = [
+        'ma_tonkho', 'serial_code', 'tinhtrang', 'min_soluongkho', 'ngaycuthe',
+    ];
+
+    protected $casts = [
+        'min_soluongkho' => 'integer',
+        'ngaycuthe'      => 'datetime',
+    ];
+
+    protected static function newFactory(): SanPhamSerialFactory
+    {
+        return SanPhamSerialFactory::new();
+    }
+
     public function tonKhoCucBo()
     {
-        return $this->belongsTo(TonKhoCucBo::class, 'MaTonKho', 'ID_Khoton');
+        return $this->belongsTo(ton_kho_cuc_bo::class, 'ma_tonkho', 'id_khoton');
     }
 }

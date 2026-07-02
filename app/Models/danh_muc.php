@@ -1,51 +1,47 @@
 <?php
-
 namespace App\Models;
-
+use Database\Factories\DanhMucFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 class danh_muc extends Model
 {
-    //cấu hình bảng
-    protected $table = 'danh_muc';
-    protected $primaryKey = 'ID_DanhMuc';
-    // 2. KHAI BÁO CÁC TRƯỜNG ĐƯỢC PHÉP THÊM DỮ LIỆU HÀNG LOẠT
+    use HasFactory;
+    protected $table      = 'danh_muc';
+    protected $primaryKey = 'id_danhmuc';
     protected $fillable = [
-        'Ten_DanhMuc',
-        'slug',
-        'DanhMuc_cha',
-        'Hinhanh_icon',
-        'is_active',
+        'ten_danhmuc', 'slug', 'danhmuc_cha', 'hinhanh_icon', 'is_active',
     ];
-
-    // Ép kiểu dữ liệu cho trạng thái kích hoạt
     protected $casts = [
-        'is_active' => 'boolean',
+        'is_active'   => 'boolean',
+        'danhmuc_cha' => 'integer',
     ];
-    // 3. THIẾT LẬP CÁC MỐI QUAN HỆ (RELATIONSHIPS)
-
-    /**
-     * Mối quan hệ 1-Nhiều: 1 Danh mục có thể chứa nhiều Sản phẩm
-     * (Móc nối ngược lại với trường Ma_DanhMuc ở bảng san_pham)
-     */
-    public function sanPham()
+    protected static function newFactory(): DanhMucFactory
     {
-        return $this->hasMany(SanPham::class, 'Ma_DanhMuc', 'ID_DanhMuc');
+        return DanhMucFactory::new();
     }
-
-    /**
-     * QUAN HỆ ĐỆ QUY (BbelongsTo): Danh mục con trỏ ngược về Danh mục cha của nó
-     */
     public function danhMucCha()
     {
-        return $this->belongsTo(DanhMuc::class, 'DanhMuc_cha', 'ID_DanhMuc');
+        return $this->belongsTo(danh_muc::class, 'danhmuc_cha', 'id_danhmuc');
     }
-
-    /**
-     * QUAN HỆ ĐỆ QUY (HasMany): Từ Danh mục cha lấy ra danh sách các Danh mục con bên trong
-     */
     public function danhMucCon()
     {
-        return $this->hasMany(DanhMuc::class, 'DanhMuc_cha', 'ID_DanhMuc');
+        return $this->hasMany(danh_muc::class, 'danhmuc_cha', 'id_danhmuc');
+    }
+    public function conVaChau()
+    {
+        return $this->hasMany(danh_muc::class, 'danhmuc_cha', 'id_danhmuc')
+                    ->with('conVaChau');  
+    }
+    public function laDanhMucGoc(): bool
+    {
+        return is_null($this->danhmuc_cha);
+    }
+    public function laDanhMucLa(): bool
+    {
+        return $this->danhMucCon()->doesntExist();
+    }
+    public function sanPham()
+    {
+        return $this->hasMany(san_pham::class, 'ma_danhmuc', 'id_danhmuc');
     }
 }

@@ -2,83 +2,61 @@
 
 namespace App\Models;
 
+use Database\Factories\DonHangFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+
 class don_hang extends Model
 {
     use HasFactory;
-    // cấu hình bảng
-    protected $table = 'don_hang';
+
+    protected $table      = 'don_hang';
     protected $primaryKey = 'id_donhang';
-    // 2. KHAI BÁO CÁC TRƯỜNG ĐƯỢC PHÉP THÊM DỮ LIỆU HÀNG LOẠT
+
     protected $fillable = [
-        'MaNguoiDung',
-        'MaChiNhanh',
-        'MaKhuyenMai',
-        'MaDiachinguoidung',
-        'TongTien',
-        'Phuong_thuc_TT',
-        'Trang_thai_DH',
-        'ghichu',
-        'thoigiandathang',
+        'ma_nguoidung', 'ma_chinhanh', 'ma_khuyenmai',
+        'ma_diachinguoidung', 'tongtien',
+        'phuong_thuc_tt', 'trang_thai_dh',
+        'ghichu', 'thoigiandathang',
     ];
 
-    // Ép kiểu dữ liệu cho cột ngày đặt hàng và tổng tiền
     protected $casts = [
         'thoigiandathang' => 'datetime',
-        'TongTien' => 'bigInteger',
+        'tongtien'        => 'integer',
     ];
-    // 3. THIẾT LẬP CÁC MỐI QUAN HỆ KHÓA NGOẠI (BELONGS TO)
 
-    /**
-     * Mối quan hệ N-1: Đơn hàng thuộc về 1 Người dùng (Khách hàng)
-     */
-    public function user()
+    protected static function newFactory(): DonHangFactory
     {
-        // Trỏ về Model User mặc định (đã được đổi sang bảng nguoi_dung)
-        return $this->belongsTo(User::class, 'MaNguoiDung', 'id_NguoiDung');
+        return DonHangFactory::new();
     }
 
-    /**
-     * Mối quan hệ N-1: Đơn hàng được bán/xuất phát từ 1 Chi nhánh cửa hàng
-     */
+    public function nguoiDung()
+    {
+        return $this->belongsTo(Nguoi_dung::class, 'ma_nguoidung', 'id_nguoidung');
+    }
+
     public function chiNhanh()
     {
-        return $this->belongsTo(ChiNhanh::class, 'MaChiNhanh', 'iD_ChiNhanh');
+        return $this->belongsTo(chi_nhanh::class, 'ma_chinhanh', 'id_chinhanh');
     }
 
-    /**
-     * Mối quan hệ N-1: Đơn hàng có thể áp dụng 1 Mã khuyến mãi
-     */
     public function khuyenMai()
     {
-        return $this->belongsTo(KhuyenMai::class, 'MaKhuyenMai', 'id_khuyenmai');
+        return $this->belongsTo(khuyen_mai::class, 'ma_khuyenmai', 'id_khuyenmai');
     }
 
-    /**
-     * Mối quan hệ N-1: Đơn hàng được gửi tới 1 Địa chỉ cụ thể của người dùng
-     */
     public function diaChi()
     {
-        return $this->belongsTo(DiaChiNguoiDung::class, 'MaDiachinguoidung', 'ID_DiaChiNguoiDung');
+        return $this->belongsTo(diachi_nguoidung::class, 'ma_diachinguoidung', 'id_diachinguoidung');
     }
 
-
-    // 4. THIẾT LẬP CÁC QUAN HỆ ĐẦU RA (HAS MANY)
-
-    /**
-     * Mối quan hệ 1-Nhiều: Một đơn hàng sẽ bao gồm nhiều Chi tiết đơn hàng (các sản phẩm bên trong)
-     */
     public function chiTietDonHang()
     {
-        return $this->hasMany(ChiTietDonHang::class, 'MaDonHang', 'id_DonHang');
+        return $this->hasMany(chi_tiet_don_hang::class, 'ma_donhang', 'id_donhang');
     }
 
-    /**
-     * Mối quan hệ 1-Nhiều: Một đơn hàng có thể có nhiều đợt/lịch sử Thanh toán
-     */
     public function thanhToan()
     {
-        return $this->hasMany(ThanhToan::class, 'MaDonHang', 'id_DonHang');
+        return $this->hasMany(thanh_toan::class, 'ma_donhang', 'id_donhang');
     }
 }

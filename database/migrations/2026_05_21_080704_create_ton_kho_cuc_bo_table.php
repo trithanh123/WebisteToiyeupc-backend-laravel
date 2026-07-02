@@ -6,36 +6,28 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
-       Schema::create('ton_kho_cuc_bo', function (Blueprint $table) {
-            $table->id('ID_Khoton'); // Khóa chính Bigint
-            
-            // Các cột khóa ngoại (unsignedBigInteger để khớp với bảng gốc)
-            $table->unsignedBigInteger('MaSanPham');
-            $table->unsignedBigInteger('MaChiNhanh');
-            // Thông tin số lượng tồn kho
-            $table->integer('Soluongtonkho')->default(0);
-            $table->integer('Soluongkhothap')->default(5);
+        Schema::create('ton_kho_cuc_bo', function (Blueprint $table) {
+            $table->id('id_khoton');
+            $table->unsignedBigInteger('ma_sanpham');
+            $table->unsignedBigInteger('ma_chinhanh');
+            $table->integer('soluongtonkho')->default(0);
+            $table->integer('soluongkhothap')->default(5);
             $table->timestamps();
-            // Ràng buộc khóa ngoại
-            $table->foreign('MaSanPham')
-                  ->references('ID_SanPham')
+
+            $table->foreign('ma_sanpham')
+                  ->references('id_sanpham')
                   ->on('san_pham')
                   ->onDelete('cascade');
-            $table->foreign('MaChiNhanh')
-                  ->references('iD_ChiNhanh')
+
+            $table->foreign('ma_chinhanh')
+                  ->references('id_chinhanh')
                   ->on('chi_nhanh')
                   ->onDelete('cascade');
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('ton_kho_cuc_bo');

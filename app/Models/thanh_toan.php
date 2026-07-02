@@ -2,39 +2,35 @@
 
 namespace App\Models;
 
+use Database\Factories\ThanhToanFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+
 class thanh_toan extends Model
 {
     use HasFactory;
-    // cấu hình bảng
-    // 1. CẤU HÌNH BẢNG
-    protected $table = 'thanh_toan';
-    protected $primaryKey = 'id_thanhtoan'; // Thành kiểm tra lại xem ERD là id_thanhtoan hay id_ThanhToan nha
 
-    // 2. KHAI BÁO CÁC TRƯỜNG ĐƯỢC PHÉP CHÈN DỮ LIỆU
+    protected $table      = 'thanh_toan';
+    protected $primaryKey = 'id_thanhtoan';
+
     protected $fillable = [
-        'MaDonHang',
-        'soluong',       
-        'Ma_giaodich',     
-        'SoTien',           
-        'Phuong_thuc',   
-        'trangthai',        
-        'ngaythanhtoan'
+        'ma_donhang', 'soluong', 'phuong_thuc',
+        'ma_giaodich', 'sotien', 'trangthai', 'ngaythanhtoan',
     ];
-    // 3. ÉP KIỂU DỮ LIỆU (Để tính toán và truy vấn dễ dàng hơn)
+
     protected $casts = [
-        'soluong' => 'integer',
-        'SoTien' => 'integer',
+        'soluong'       => 'integer',
+        'sotien'        => 'integer',
         'ngaythanhtoan' => 'datetime',
     ];
 
-    // 4. THIẾT LẬP MỐI QUAN HỆ KHÓA NGOẠI (BELONGS TO)
-    /**
-     * Mối quan hệ N-1: Một lượt thanh toán thuộc về 1 Đơn hàng
-     */
+    protected static function newFactory(): ThanhToanFactory
+    {
+        return ThanhToanFactory::new();
+    }
+
     public function donHang()
     {
-        return $this->belongsTo(DonHang::class, 'MaDonHang', 'id_DonHang');
+        return $this->belongsTo(don_hang::class, 'ma_donhang', 'id_donhang');
     }
 }

@@ -1,65 +1,51 @@
 <?php
-
 namespace App\Models;
-
+use Database\Factories\SanPhamFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 class san_pham extends Model
 {
-    // cấu hình bảng
-    protected $table = 'san_pham';
-    protected $primaryKey = 'ID_SanPham';
-
-    // 2. KHAI BÁO CÁC TRƯỜNG ĐƯỢC PHÉP THÊM DỮ LIỆU
+    use HasFactory;
+    protected $table      = 'san_pham';
+    protected $primaryKey = 'id_sanpham';
     protected $fillable = [
-        'Ma_DanhMuc',
-        'MaSP',
-        'TenSP',
-        'Gia',
-        'Thumbail',
-        'Motasanpham',
-        'specifications',
-        // 'embedding', // (Tạm thời đóng lại theo database hiện tại, mở ra sau khi cài Vector AI)
+        'ma_danhmuc', 'masp', 'tensp', 'gia',
+        'thumbail', 'motasanpham', 'specifications', 'embedding',
     ];
-
-    // 3. ÉP KIỂU DỮ LIỆU (CASTS) - Tuyệt chiêu của Laravel
     protected $casts = [
-        // Tự động chuyển đổi JSON trong Database thành mảng (Array) trong PHP và ngược lại
-        'specifications' => 'array', 
-        // Đảm bảo giá tiền luôn trả về số nguyên
-        'Gia' => 'integer',
+        'specifications' => 'array',
+        'gia'            => 'integer',
+        'ma_danhmuc'     => 'integer',
     ];
-    // 4. THIẾT LẬP CÁC MỐI QUAN HỆ
-
-    /**
-     * Mối quan hệ N-1: Nhiều Sản phẩm thuộc về 1 Danh mục
-     */
+    public function serials()
+    {
+        return $this->hasManyThrough(
+            sanpham_serials::class,
+            ton_kho_cuc_bo::class,
+            'ma_sanpham', 
+            'ma_tonkho',  
+            'id_sanpham',
+            'id_khoton'
+        );
+    }
+    protected static function newFactory(): SanPhamFactory
+    {
+        return SanPhamFactory::new();
+    }
     public function danhMuc()
     {
-        return $this->belongsTo(DanhMuc::class, 'Ma_DanhMuc', 'ID_DanhMuc');
+        return $this->belongsTo(danh_muc::class, 'ma_danhmuc', 'id_danhmuc');
     }
-
-    /**
-     * Mối quan hệ 1-Nhiều: 1 Sản phẩm sẽ nằm ở nhiều Kho cục bộ (các chi nhánh khác nhau)
-     */
     public function tonKho()
     {
-        return $this->hasMany(TonKhoCucBo::class, 'MaSanPham', 'ID_SanPham');
+        return $this->hasMany(ton_kho_cuc_bo::class, 'ma_sanpham', 'id_sanpham');
     }
-
-    /**
-     * Mối quan hệ 1-Nhiều: 1 Sản phẩm có thể xuất hiện trong nhiều Chi tiết đơn hàng
-     */
     public function chiTietDonHang()
     {
-        return $this->hasMany(ChiTietDonHang::class, 'MaSanPham', 'ID_SanPham');
+        return $this->hasMany(chi_tiet_don_hang::class, 'ma_sanpham', 'id_sanpham');
     }
-
-    /**
-     * Mối quan hệ 1-Nhiều: 1 Sản phẩm có thể có nhiều Đánh giá
-     */
     public function danhGia()
     {
-        return $this->hasMany(DanhGia::class, 'MaSanPham', 'ID_SanPham');
+        return $this->hasMany(danh_gia::class, 'ma_sanpham', 'id_sanpham');
     }
 }

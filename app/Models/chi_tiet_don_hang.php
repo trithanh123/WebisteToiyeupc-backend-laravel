@@ -2,46 +2,39 @@
 
 namespace App\Models;
 
+use Database\Factories\ChiTietDonHangFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+
 class chi_tiet_don_hang extends Model
 {
-    use hasFactory;
-    // cấu hình bảng
-   
-    protected $table = 'chi_tiet_don_hang';
-    protected $primaryKey = 'id_ChiTietDH';
+    use HasFactory;
 
-    // 2. KHAI BÁO CÁC TRƯỜNG ĐƯỢC PHÉP THÊM DỮ LIỆU
+    protected $table      = 'chi_tiet_don_hang';
+    protected $primaryKey = 'id_chitietdh';
+
     protected $fillable = [
-        'MaDonHang',
-        'MaSanPham',
-        'Soluong',
-        'Don_gia',
-        'Thanh_tien',
+        'ma_donhang', 'ma_sanpham', 'soluong', 'don_gia', 'thanh_tien',
     ];
 
-    // Ép kiểu dữ liệu để đảm bảo các phép tính toán tiền bạc/số lượng luôn chính xác
     protected $casts = [
-        'Soluong' => 'integer',
-        'Don_gia' => 'bigInteger',
-        'Thanh_tien' => 'bigInteger',
+        'soluong'    => 'integer',
+        'don_gia'    => 'integer',
+        'thanh_tien' => 'integer',
     ];
-    // 3. THIẾT LẬP CÁC MỐI QUAN HỆ KHÓA NGOẠI (BELONGS TO)
 
-    /**
-     * Mối quan hệ N-1: Chi tiết này thuộc về một Đơn hàng cụ thể
-     */
-    public function donHang()
+    protected static function newFactory(): ChiTietDonHangFactory
     {
-        return $this->belongsTo(DonHang::class, 'MaDonHang', 'id_DonHang');
+        return ChiTietDonHangFactory::new();
     }
 
-    /**
-     * Mối quan hệ N-1: Chi tiết này định danh cho một Sản phẩm (Linh kiện) cụ thể
-     */
+    public function donHang()
+    {
+        return $this->belongsTo(don_hang::class, 'ma_donhang', 'id_donhang');
+    }
+
     public function sanPham()
     {
-        return $this->belongsTo(SanPham::class, 'MaSanPham', 'ID_SanPham');
+        return $this->belongsTo(san_pham::class, 'ma_sanpham', 'id_sanpham');
     }
 }
