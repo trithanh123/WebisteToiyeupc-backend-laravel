@@ -17,12 +17,12 @@ class ThongBao extends Model
         'loai_thong_bao',
         'tieu_de',
         'noi_dung',
-        'da_doc',
+        'nguoi_doc',
         'link'
     ];
 
     protected $casts = [
-        'da_doc' => 'boolean',
+        'nguoi_doc' => 'array', // Tự động decode JSON thành array PHP
     ];
 
     protected static function newFactory(): ThongBaoFactory

@@ -15,7 +15,6 @@ return new class extends Migration
             $table->integer('soluongtonkho')->default(0);
             $table->integer('soluongkhothap')->default(5);
             $table->timestamps();
-
             $table->foreign('ma_sanpham')
                   ->references('id_sanpham')
                   ->on('san_pham')

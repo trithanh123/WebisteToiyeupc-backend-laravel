@@ -11,6 +11,7 @@ use App\Models\ChiTietDonHang;
 use App\Models\ThanhToan;       
 use App\Models\ThongBao;
 use App\Models\khuyen_mai;
+use App\Models\ThongBaoKhachHang;
 use Illuminate\Support\Facades\Auth;
 class PurchaseController extends Controller
 {
@@ -316,6 +317,16 @@ class PurchaseController extends Controller
             'noi_dung' => 'Đơn hàng #' . $id . ' vừa được chuyển sang trạng thái: ' . $request->trang_thai_dh,
             'link' => '/admin/don-hang/' . $id
         ]);
+        
+        
+        ThongBaoKhachHang::create([
+            'id_nguoidung' => $order->ma_nguoidung,
+            'loai_thong_bao' => 'don_hang',
+            'tieu_de' => 'Cập nhật đơn hàng',
+            'noi_dung' => 'Đơn hàng #' . $id . ' của bạn đã được cập nhật trạng thái thành: ' . $request->trang_thai_dh,
+            'link' => '/tai-khoan/don-hang'
+        ]);
+
         return response()->json([
             'status' => 'success',
             'message' => 'Đã cập nhật trạng thái đơn hàng thành: ' . $request->trang_thai_dh
@@ -491,17 +502,31 @@ class PurchaseController extends Controller
         }
         DB::table('don_hang')->where('id_donhang', $id)->update([
             'trang_thai_dh' => 'Đã hủy',
-            'updated_at' => now()
+            'updated_at'    => now()
         ]);
+
+        // ── Hoàn lại tồn kho khi hủy đơn ──────────────────────────────────
+        $chiTietDonHang = DB::table('chi_tiet_don_hang')
+            ->where('ma_donhang', $id)
+            ->get();
+
+        foreach ($chiTietDonHang as $item) {
+            DB::table('ton_kho_cuc_bo')
+                ->where('ma_chinhanh', $order->ma_chinhanh)
+                ->where('ma_sanpham',  $item->ma_sanpham)
+                ->increment('soluongtonkho', $item->soluong);
+        }
+        // ───────────────────────────────────────────────────────────────────
+
         ThongBao::create([
             'loai_thong_bao' => 'ORDER',
-            'tieu_de' => 'Khách hàng hủy đơn',
-            'noi_dung' => 'Khách hàng vừa hủy đơn hàng #' . $id,
-            'link' => '/admin/don-hang/' . $id
+            'tieu_de'        => 'Khách hàng hủy đơn',
+            'noi_dung'       => 'Khách hàng vừa hủy đơn hàng #' . $id . '. Tồn kho chi nhánh đã được hoàn lại.',
+            'link'           => '/admin/don-hang/' . $id
         ]);
         return response()->json([
-            'status' => 'success',
-            'message' => 'Đã hủy đơn hàng thành công'
+            'status'  => 'success',
+            'message' => 'Đã hủy đơn hàng thành công. Tồn kho đã được hoàn lại.'
         ]);
     }
 }

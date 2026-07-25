@@ -1,16 +1,24 @@
 <?php
+
 namespace App\Http\Controllers\Api;
+
 use App\Http\Controllers\Controller;
 use App\Models\ThongBao;
 use Illuminate\Http\Request;
+
 class NotificationController extends Controller
 {
     public function index()
     {
         $notifications = ThongBao::orderBy('created_at', 'desc')
-            ->limit(20)
-            ->get();
-        $unreadCount = ThongBao::where('da_doc', false)->count();
+    ->limit(20)
+    ->get()
+    ->map(function ($n) {
+        $n->da_doc = !empty($n->nguoi_doc);
+        return $n;
+    });
+        $unreadCount = ThongBao::whereJsonLength('nguoi_doc', 0)->count();
+
         return response()->json([
             'status' => 'success',
             'unread_count' => $unreadCount,
@@ -21,15 +29,15 @@ class NotificationController extends Controller
     {
         $notification = ThongBao::find($id);
         if ($notification) {
-            $notification->update(['da_doc' => true]);
+            $notification->update(['nguoi_doc' => [1]]);
             return response()->json(['status' => 'success']);
         }
         return response()->json(['status' => 'error', 'message' => 'Không tìm thấy thông báo'], 404);
     }
     public function markAllAsRead()
     {
-        ThongBao::where('da_doc', false)->update(['da_doc' => true]);
-        return response()->json(['status' => 'success']);
+    ThongBao::whereJsonLength('nguoi_doc', 0)->update(['nguoi_doc' => json_encode([1])]);
+    return response()->json(['status' => 'success']);
     }
     public function destroy($id)
     {

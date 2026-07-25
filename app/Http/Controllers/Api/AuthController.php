@@ -35,6 +35,7 @@ class AuthController extends Controller
             'user'    => $user
         ]);
     }
+    
     public function login(LoginAuthRequest $request)
     {
         $identifier = trim($request->email);

@@ -12,16 +12,7 @@ class UserController extends Controller
 {
     public function index(Request $request)
     {
-        $users = Nguoi_dung::select([
-                'id_nguoidung',
-                'ten',
-                'email',
-                'sdt',
-                'phanquyen',
-                'mancc',
-                'avatar',
-                'created_at',
-            ])
+        $users = Nguoi_dung::select(['id_nguoidung','ten','email','sdt','phanquyen','mancc','avatar','created_at', ])
             ->orderBy('id_nguoidung', 'asc')
             ->get()
             ->map(function ($user) {
@@ -29,6 +20,7 @@ class UserController extends Controller
                     1 => 'Admin',
                     2 => 'Nhân viên',
                     3 => 'Khách hàng',
+                    4 => 'Khách VIP',
                     default => 'Không xác định',
                 };
                 return $user;
@@ -83,7 +75,7 @@ class UserController extends Controller
             'data'   => $user,
         ], 200);
     }
-    public function update(Request $request, $id)
+    public function update(UpdateUserRequest $request, $id)
     {
         $user = Nguoi_dung::find($id);
         if (!$user) {

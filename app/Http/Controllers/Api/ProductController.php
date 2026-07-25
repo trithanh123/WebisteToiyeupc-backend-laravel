@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Http;
 use App\Models\danh_muc;
 use App\Http\Requests\UpdateProductRequest;
 use App\Http\Requests\StorePRoductRequest;
+use Illuminate\Support\Facades\Log;
 class ProductController extends Controller
 {
     public function index(Request $request)
@@ -185,8 +186,11 @@ class ProductController extends Controller
     {
         $product = san_pham::create($request->validated());
         
-       
-        $this->updateProductEmbedding($product);
+        try {
+            $this->updateProductEmbedding($product);
+        } catch (\Exception $e) {
+            Log::warning('[Embedding] Không thể tạo embedding cho sản phẩm ' . $product->id_sanpham . ': ' . $e->getMessage());
+        }
         
         $product->load('danhMuc:id_danhmuc,ten_danhmuc');
         return response()->json([
@@ -207,8 +211,11 @@ class ProductController extends Controller
         }
         $product->update($request->validated());
         
-        
-        $this->updateProductEmbedding($product);
+        try {
+            $this->updateProductEmbedding($product);
+        } catch (\Exception $e) {
+            Log::warning('[Embedding] Không thể cập nhật embedding cho sản phẩm ' . $product->id_sanpham . ': ' . $e->getMessage());
+        }
         
         $product->load('danhMuc:id_danhmuc,ten_danhmuc');
         return response()->json([
@@ -229,12 +236,24 @@ class ProductController extends Controller
                 'message' => 'Không tìm thấy sản phẩm.',
             ], 404);
         }
+
+        $productId = $product->id_sanpham;
         $product->delete();
+
+        // Xóa embedding tương ứng khỏi Qdrant
+        try {
+            $pythonServiceUrl = env('PYTHON_SEARCH_URL', 'http://localhost:8001');
+            Http::timeout(5)->delete("{$pythonServiceUrl}/delete/{$productId}");
+        } catch (\Exception $e) {
+            Log::warning('[Embedding] Không thể xóa embedding sản phẩm id=' . $productId . ': ' . $e->getMessage());
+        }
+
         return response()->json([
             'status'  => 'success',
             'message' => 'Đã xóa sản phẩm thành công!',
         ], 200);
     }
+
 
 
     public function aiSearch(Request $request)
@@ -305,4 +324,52 @@ class ProductController extends Controller
             'data'     => $products,
         ]);
     }
+    /**
+     * Gửi dữ liệu sản phẩm sang Python service để tạo/cập nhật vector embedding.
+     * Nếu service không chạy, exception sẽ được bắt ở nơi gọi.
+     */
+    private function updateProductEmbedding(san_pham $product): void
+    {
+        $pythonServiceUrl = env('PYTHON_SEARCH_URL', 'http://localhost:8001');
+        
+        $product->load('danhMuc:id_danhmuc,ten_danhmuc');
+        
+        Http::timeout(10)->post("{$pythonServiceUrl}/upsert", [
+            'id'          => $product->id_sanpham,
+            'masp'        => $product->masp,
+            'tensp'       => $product->tensp,
+            'gia'         => $product->gia,
+            'motasanpham' => $product->motasanpham,
+            'ten_danhmuc' => $product->danhMuc?->ten_danhmuc,
+            'specifications' => $product->specifications,
+        ]);
+    }
+    public function checkStock($id)
+    {
+        if ($id === 'undefined' || !$id) {
+            return response()->json([
+                'is_available' => false,
+                'stock' => 0,
+                'message' => 'ID không hợp lệ'
+            ], 200);
+        }
+
+        $product = san_pham::with('tonKho')->find($id);
+        
+        if (!$product) {
+            return response()->json([
+                'is_available' => false,
+                'stock' => 0,
+                'message' => 'Sản phẩm không tồn tại'
+            ], 200);
+        }
+
+        $totalStock = $product->tonKho->sum('soluongtonkho');
+
+        return response()->json([
+            'is_available' => $totalStock > 0,
+            'stock' => $totalStock
+        ], 200);
+    }
+
 }

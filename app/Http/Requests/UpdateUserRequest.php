@@ -15,12 +15,7 @@ class UpdateUserRequest extends FormRequest
         $id = $this->route('id');
         return [
             'ten'=> 'nullable|string|max:255',
-            'sdt'=> [
-                'nullable',
-                'string',
-                'regex:/^[0-9]{9,11}$/',
-                'unique:nguoi_dung,sdt,' . $id . ',id_nguoidung',
-            ],
+            'sdt'=> ['nullable','string','regex:/^[0-9]{9,11}$/','unique:nguoi_dung,sdt,' . $id . ',id_nguoidung',],
             'phanquyen' => 'nullable|integer|in:1,2,3',
         ];
     }

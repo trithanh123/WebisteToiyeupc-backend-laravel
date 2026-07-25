@@ -18,7 +18,7 @@ class StorePRoductRequest extends FormRequest
             'tensp'          => 'required|string|max:255',
             'gia'            => 'required|integer|min:0',
             'thumbail'       => 'nullable|string', 
-            'Motasanpham'    => 'nullable|string',
+            'motasanpham'    => 'nullable|string',
             'specifications' => 'nullable|array',
         ];
     }
