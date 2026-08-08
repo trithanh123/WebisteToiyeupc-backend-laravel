@@ -467,8 +467,6 @@ class ProductController extends Controller
                 $data = $response->json();
                 
                 // Get fresh prices and stock from MySQL for each component.
-                // Use 'masp' (product code e.g. "DK-1080") as the cross-reference key — it exists
-                // in both Qdrant payload and MySQL and is guaranteed to match correctly.
                 if (isset($data['build']) && is_array($data['build'])) {
                     $build = [];
                     foreach ($data['build'] as $item) {
@@ -481,10 +479,8 @@ class ProductController extends Controller
                         }
                         
                         if ($product) {
-                            // Use fresh MySQL data (correct price, name, stock)
                             $build[] = $product;
                         } else {
-                            // Fallback: Qdrant data (price may be stale)
                             $build[] = $item;
                         }
                     }
@@ -494,7 +490,13 @@ class ProductController extends Controller
                 return response()->json($data);
             }
             
-            return response()->json(['message' => 'Không tìm thấy cấu hình phù hợp với ngân sách và yêu cầu.'], 404);
+            // If python service returns 404, it means no build found.
+            if ($response->status() == 404) {
+                return response()->json(['message' => 'Không tìm thấy cấu hình phù hợp với ngân sách và yêu cầu.'], 404);
+            }
+            
+            // Otherwise, it's a server error (e.g. 502 Bad Gateway from Render cold start)
+            return response()->json(['message' => 'AI Service đang khởi động hoặc quá tải, vui lòng thử lại sau vài giây! (Mã lỗi: ' . $response->status() . ')'], 500);
             
         } catch (\Exception $e) {
             return response()->json([
