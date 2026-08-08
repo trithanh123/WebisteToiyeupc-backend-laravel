@@ -82,6 +82,7 @@ class GenerateProductVectors extends Command
             }
 
             $bar->advance($chunk->count());
+            sleep(3); // Wait 3 seconds to avoid Gemini API Rate Limit (15 requests/minute)
         }
 
         $bar->finish();
