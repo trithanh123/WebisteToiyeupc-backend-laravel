@@ -71,10 +71,12 @@ class GenerateProductVectors extends Command
                 if ($response->successful()) {
                     $success += $chunk->count();
                 } else {
+                    $this->error("\nqdrant:index — Lỗi index batch: " . $response->body());
                     Log::error("qdrant:index — Lỗi index batch: " . $response->body());
                     $failed += $chunk->count();
                 }
             } catch (\Exception $e) {
+                $this->error("\nqdrant:index — Exception batch: " . $e->getMessage());
                 Log::error("qdrant:index — Exception batch: " . $e->getMessage());
                 $failed += $chunk->count();
             }
