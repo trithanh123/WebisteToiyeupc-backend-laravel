@@ -299,7 +299,7 @@ class ProductController extends Controller
         }
         try {
             $pythonServiceUrl = config('services.python.search_url');
-            $searchResponse   = Http::timeout(15)->post("{$pythonServiceUrl}/search", [
+            $searchResponse   = Http::timeout(60)->post("{$pythonServiceUrl}/search", [
                 'query'     => $queryText,
                 'branch_id' => $branchId,
                 'top_k'     => $topK * 3, // Oversampling (lấy nhiều hơn để trừ hao DB filter)
@@ -395,7 +395,7 @@ class ProductController extends Controller
         
         $product->load('danhMuc:id_danhmuc,ten_danhmuc');
         
-        Http::timeout(10)->post("{$pythonServiceUrl}/upsert", [
+        Http::timeout(60)->post("{$pythonServiceUrl}/upsert", [
             'id'          => $product->id_sanpham,
             'masp'        => $product->masp,
             'tensp'       => $product->tensp,
