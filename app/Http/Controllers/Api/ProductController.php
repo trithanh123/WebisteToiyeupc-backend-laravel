@@ -236,7 +236,7 @@ class ProductController extends Controller
         $productId = $product->id_sanpham;
         $product->delete();
         try {
-            $pythonServiceUrl = env('PYTHON_SEARCH_URL', 'http://localhost:8001');
+            $pythonServiceUrl = config('services.python.search_url');
             Http::timeout(5)->delete("{$pythonServiceUrl}/delete/{$productId}");
         } catch (\Exception $e) {
             Log::warning('[Embedding] Không thể xóa embedding sản phẩm id=' . $productId . ': ' . $e->getMessage());
@@ -298,7 +298,7 @@ class ProductController extends Controller
             return response()->json(['data' => []]);
         }
         try {
-            $pythonServiceUrl = env('PYTHON_SEARCH_URL', 'http://localhost:8001');
+            $pythonServiceUrl = config('services.python.search_url');
             $searchResponse   = Http::timeout(15)->post("{$pythonServiceUrl}/search", [
                 'query'     => $queryText,
                 'branch_id' => $branchId,
@@ -391,7 +391,7 @@ class ProductController extends Controller
     }
     private function updateProductEmbedding(san_pham $product): void
     {
-        $pythonServiceUrl = env('PYTHON_SEARCH_URL', 'http://localhost:8001');
+        $pythonServiceUrl = config('services.python.search_url');
         
         $product->load('danhMuc:id_danhmuc,ten_danhmuc');
         

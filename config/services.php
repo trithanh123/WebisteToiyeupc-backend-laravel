@@ -28,8 +28,11 @@ return [
         'redirect' => env('GOOGLE_REDIRECT_URI'),
     ],
     'facebook' => [
-    'client_id' => env('FACEBOOK_CLIENT_ID'),
-    'client_secret' => env('FACEBOOK_CLIENT_SECRET'),
-    'redirect' => 'http://127.0.0.1:8000/api/auth/facebook/callback',
-],
+        'client_id' => env('FACEBOOK_CLIENT_ID'),
+        'client_secret' => env('FACEBOOK_CLIENT_SECRET'),
+        'redirect' => env('FACEBOOK_REDIRECT_URI', 'http://127.0.0.1:8000/api/auth/facebook/callback'),
+    ],
+    'python' => [
+        'search_url' => env('PYTHON_SEARCH_URL', 'http://localhost:8001'),
+    ],
 ];
