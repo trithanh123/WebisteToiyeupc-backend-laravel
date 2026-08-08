@@ -3,9 +3,10 @@ namespace App\Models;
 use Database\Factories\ChiNhanhFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\SoftDeletes;
 class chi_nhanh extends Model
 {
-    use HasFactory;
+    use HasFactory, SoftDeletes;
     protected $table = 'chi_nhanh';
     protected $primaryKey = 'id_chinhanh';
     public $timestamps = true;

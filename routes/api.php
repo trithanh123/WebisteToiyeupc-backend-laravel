@@ -49,12 +49,13 @@ Route::prefix('wishlist')->controller(WishlistController::class)->middleware('au
 });
 
 Route::prefix('')->controller(AuthController::class)->name('auth.')->group(function () {
-    Route::post('/register', 'register')->name('register')->middleware('throttle:register');
-    Route::post('/login',    'login')->name('login')->middleware('throttle:login');
+    Route::post('/login','login')->name('login')->middleware('throttle:login');
     Route::get('/auth/{provider}/redirect', 'redirectToProvider')->name('provider.redirect');
     Route::get('/auth/{provider}/callback', 'handleProviderCallback')->name('provider.callback');
     Route::post('/auth/exchange-code', 'exchangeCode')->name('exchange-code')->middleware('throttle:login');
-});
+    Route::post('/register/send-otp','sendRegisterOTP');
+    Route::post('/register/verify-otp','verifyRegisterOTP') ;
+ });                                       
 Route::prefix('forgot-password')->controller(PasswordResetController::class)->name('forgot-password.')->group(function () {
     Route::post('/send-otp',      'sendOtp')->name('send-otp')->middleware('throttle:forgot-password');
     Route::post('/verify-otp',    'verifyOtp')->name('verify-otp')->middleware('throttle:forgot-password');
@@ -72,9 +73,10 @@ Route::prefix('products')->controller(ProductController::class)
 ->group(function () {
     Route::get('/','index')->name('index');
     Route::get('/by-category','byCategory')->name('by-category'); 
-    Route::get('/{id}','show')->name('show');
+    Route::get('/{id}','show')->where('id', '[0-9]+')->name('show');
     Route::post('/ai-search','aiSearch')->name('ai-search');
-    Route::get('/{id}/check-stock','checkStock')->name('check-stock');
+    Route::post('/build-pc','buildPc')->name('build-pc');
+    Route::get('/{id}/check-stock','checkStock')->where('id', '[0-9]+')->name('check-stock');
 });
 Route::prefix('branches')->controller(BranchController::class)->name('branches.')->group(function () {
     Route::get('/', 'index')->name('index');
@@ -111,9 +113,10 @@ Route::middleware('auth:sanctum')->prefix('admin')->name('admin.')->group(functi
     ->group(function () {
         Route::get('/','index')->name('index');
         Route::post('/','store')->name('store');
-        Route::put('/{id}','update')->name('update');
-        Route::delete('/{id}','destroy')->name('destroy');
-        Route::get('/{id}/check-stock', 'checkStock')->name('check-stock');
+        Route::post('/upload-image', 'uploadImage')->name('upload-image');
+        Route::put('/{id}','update')->where('id', '[0-9]+')->name('update');
+        Route::delete('/{id}','destroy')->where('id', '[0-9]+')->name('destroy');
+        Route::get('/{id}/check-stock', 'checkStock')->where('id', '[0-9]+')->name('check-stock');
     });
     Route::prefix('vouchers')->controller(VoucherController::class)
     ->name('vouchers.')
@@ -121,7 +124,7 @@ Route::middleware('auth:sanctum')->prefix('admin')->name('admin.')->group(functi
     ->group(function () {
         Route::get('/','index')->name('index');
         Route::post('/','store')->name('store');
-        Route::put('/{id}','update')->name('update');
+        Route::patch('/{id}','update')->name('update');
         Route::delete('/{id}','destroy')->name('destroy');
     });
     Route::prefix('branches')->controller(BranchController::class)
@@ -133,6 +136,7 @@ Route::middleware('auth:sanctum')->prefix('admin')->name('admin.')->group(functi
         Route::get('/{id}','show')->name('show');
         Route::put('/{id}','update')->name('update');
         Route::delete('/{id}','destroy')->name('destroy');
+        Route::put('/{id}/restore','restore')->name('restore');
     });
     Route::prefix('personnel')->controller(PersonnelController::class)
     ->name('personnel.')
@@ -161,6 +165,7 @@ Route::middleware('auth:sanctum')->prefix('admin')->name('admin.')->group(functi
         Route::put('/{id}/approve', 'approve')->name('approve');
         Route::put('/{id}/complete', 'complete')->name('complete');
         Route::delete('/{id}', 'destroy')->name('destroy');
+        Route::put('/{id}/reject', 'reject')->name('reject');
     });
     Route::prefix('admin/warranty')->controller(SupportWarrantyController::class)->name('admin.warranty.')->middleware(['auth:sanctum', CheckadminRole::class])->group(function () {
     Route::get('/', 'index')->name('index');
@@ -200,6 +205,12 @@ Route::prefix('staff')->controller(StockStaffController::class)->name('staff.')-
     Route::get('/local-stock', 'index')->name('local-stock.index');
     Route::put('/local-stock/{id_khoton}', 'update')->name('local-stock.update');
     Route::get('/warehouse-overview', 'warehouseOverview')->name('warehouse-overview');
+});
+
+use App\Http\Controllers\Api\StaffDashboardController;
+
+Route::prefix('staff')->middleware(['auth:sanctum', CheckstaffRole::class])->group(function () {
+    Route::get('/dashboard', [StaffDashboardController::class, 'dashboard'])->name('staff.dashboard');
 });
 
 Route::prefix('staff/orders')->controller(OrderStaffController::class)->name('staff.orders.')->middleware(['auth:sanctum', CheckstaffRole::class])->group(function () {

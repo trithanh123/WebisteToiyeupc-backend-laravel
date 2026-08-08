@@ -12,6 +12,7 @@ class san_pham extends Model
         'ma_danhmuc', 'masp', 'tensp', 'gia',
         'thumbail', 'motasanpham', 'specifications', 'embedding',
     ];
+    protected $hidden = ['embedding'];
     protected $casts = [
         'specifications' => 'array',
         'gia'            => 'integer',

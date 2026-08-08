@@ -39,7 +39,7 @@ class WarehouseController extends Controller
                         'ma_tonkho'      => $tonKho->id_khoton,
                         'serial_code'    => $chuoiSerial,
                         'tinhtrang'      => 'nằm trong kho',
-                        'Min_soluongkho' => $dinhMuc,
+                        'min_soluongkho' => $dinhMuc,
                         'created_at'     => now(),
                         'updated_at'     => now(),
                     ];

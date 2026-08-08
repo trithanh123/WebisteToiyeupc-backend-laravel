@@ -16,10 +16,11 @@ class StorePRoductRequest extends FormRequest
             'ma_danhmuc'     => 'required|integer|exists:danh_muc,id_danhmuc',
             'masp'           => 'required|string|max:255|unique:san_pham,masp',
             'tensp'          => 'required|string|max:255',
-            'gia'            => 'required|integer|min:0',
+            'gia'            => 'required|integer|min:1',
             'thumbail'       => 'nullable|string', 
             'motasanpham'    => 'nullable|string',
             'specifications' => 'nullable|array',
+            'weight'         => 'nullable|numeric|min:0'
         ];
     }
     public function messages(){
@@ -29,8 +30,8 @@ class StorePRoductRequest extends FormRequest
             'masp.required'       => 'Mã sản phẩm không được để trống.',
             'masp.unique'         => 'Mã sản phẩm này đã tồn tại.',
             'tensp.required'      => 'Tên sản phẩm không được để trống.',
-            'Gia.required'        => 'Giá sản phẩm không được để trống.',
-            'Gia.min'             => 'Giá sản phẩm không được âm.',
+            'gia.required'        => 'Giá sản phẩm không được để trống.',
+            'gia.min'             => 'Giá sản phẩm phải lớn hơn 0.',
             'specifications.array'=> 'Thông số kỹ thuật phải là một mảng.',
         ];
     }

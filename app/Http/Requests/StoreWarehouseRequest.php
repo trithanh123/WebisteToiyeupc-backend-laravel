@@ -2,6 +2,8 @@
 namespace App\Http\Requests;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Contracts\Validation\Validator;
+use Illuminate\Http\Exceptions\HttpResponseException;
 class StoreWarehouseRequest extends FormRequest
 {
     public function authorize(): bool
@@ -12,26 +14,29 @@ class StoreWarehouseRequest extends FormRequest
     {
         return [
             'nha_cung_cap'=> 'required|string|max:255',
-            'ngay_nhap'=> 'required|date',
+            'ngay_nhap'=> 'required|date|before_or_equal:today',
             'ma_chi_nhanh'=> 'required|integer|exists:chi_nhanh,id_chinhanh', 
             'san_phams' => 'required|array|min:1', 
             'san_phams.*.ma_san_pham'=> 'required|integer|exists:san_pham,id_sanpham', 
             'san_phams.*.serials'=> 'nullable|array',
-            'san_phams.*.serials.*'=> 'required_with:san_phams.*.serials|string|distinct', 
+            'san_phams.*.serials.*'=> 'required_with:san_phams.*.serials|string|distinct|unique:sanpham_serials,serial_code', 
             'san_phams.*.soluongtonkho'=> 'required|integer|min:1', 
             'san_phams.*.soluongkhothap'=> 'required|integer|min:0',
         ];
     }
+    
     public function messages(){
         return [
             'nha_cung_cap.required'=> 'Vui lòng nhập tên nhà cung cấp.',
             'ngay_nhap.required' => 'Vui lòng chọn ngày nhập kho.',
             'ngay_nhap.date'=> 'Ngày nhập kho không đúng định dạng.',
+            'ngay_nhap.before_or_equal'=> 'Ngày nhập kho không được là ngày trong tương lai.',
             'ma_chi_nhanh.exists'=> 'Chi nhánh đã chọn không tồn tại.',
             'san_phams.required'=> 'Phiếu nhập kho phải có ít nhất 1 sản phẩm.',
             'san_phams.min'=> 'Phiếu nhập kho phải có ít nhất 1 sản phẩm.',
             'san_phams.*.ma_san_pham.exists'=> 'Sản phẩm ở dòng thứ :index không tồn tại trong hệ thống.',
             'san_phams.*.serials.*.distinct'=> 'Phát hiện mã Serial bị quét trùng lặp trong cùng một mặt hàng!',
+            'san_phams.*.serials.*.unique'=> 'Mã Serial :input đã tồn tại trong hệ thống (đã được nhập trước đó)!',
             'san_phams.*.soluongtonkho.min'=> 'Số lượng nhập kho phải từ 1 trở lên.',
             'san_phams.*.soluongkhothap.min'=> 'Định mức kho thấp không được là số âm.',
         ];
@@ -41,6 +46,7 @@ class StoreWarehouseRequest extends FormRequest
         $validator->after(function ($validator) {
             $sanPhams = $this->input('san_phams', []);
             if (!is_array($sanPhams)) return;
+            $allSerials = [];
             foreach ($sanPhams as $index => $item) {
                 if (isset($item['serials']) && is_array($item['serials']) && count($item['serials']) > 0) {
                     $soLuongKhaiBao = (int) ($item['soluongtonkho'] ?? 0);
@@ -53,6 +59,15 @@ class StoreWarehouseRequest extends FormRequest
                         );
                     }
                 }
+                if (!empty($item['serials'])) {
+                    $allSerials = array_merge($allSerials, $item['serials']);
+                }
+            }
+            if (count($allSerials) !== count(array_unique($allSerials))) {
+                $validator->errors()->add(
+                    "san_phams", 
+                    "Phát hiện mã Serial bị trùng lặp giữa các mặt hàng khác nhau trong cùng phiếu nhập!"
+                );
             }
         });
     }

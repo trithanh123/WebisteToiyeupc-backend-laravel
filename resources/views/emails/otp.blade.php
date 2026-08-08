@@ -137,34 +137,32 @@
 </head>
 <body>
     <div class="wrapper">
-        <!-- Header -->
         <div class="header">
             <div class="logo">TOI<span>YEU</span>PC</div>
             <div class="tagline">Thiên đường máy tính & linh kiện</div>
         </div>
-
-        <!-- Body -->
         <div class="body">
             <p class="greeting">Xin chào, {{ $userName }}! 👋</p>
             <p class="message">
+            @if($type === 'register')
+                Chào mừng bạn đến với <strong>TOIYEUPC</strong><br><br>
+                Sử dụng mã OTP bên dưới để <strong>xác thực và hoàn tất đăng ký</strong> tài khoản. Mã chỉ có hiệu lực trong <strong>5 phút</strong>.
+            @else
                 Chúng tôi nhận được yêu cầu <strong>đặt lại mật khẩu</strong> cho tài khoản của bạn
                 tại <strong>TOIYEUPC</strong>.<br><br>
                 Sử dụng mã OTP bên dưới để tiếp tục. Mã này chỉ có hiệu lực trong <strong>10 phút</strong>.
+            @endif
             </p>
-
-            <!-- OTP Code -->
-            <div class="otp-label">🔐 Mã xác nhận của bạn</div>
+            <div class="otp-label"> Mã xác nhận của bạn</div>
             <div class="otp-box">
                 <div class="otp-code">{{ $otp }}</div>
                 <div class="otp-expire">
-                    ⏰ Mã hết hạn sau <strong>10 phút</strong>
+                     Mã hết hạn sau <strong>10 phút</strong>
                 </div>
             </div>
-
-            <!-- Warning -->
             <div class="warning-box">
                 <p>
-                    ⚠️ <strong>Lưu ý bảo mật:</strong> Không chia sẻ mã này với bất kỳ ai —
+                     <strong>Lưu ý bảo mật:</strong> Không chia sẻ mã này với bất kỳ ai —
                     kể cả nhân viên TOIYEUPC. Nếu bạn không yêu cầu đặt lại mật khẩu,
                     hãy bỏ qua email này. Tài khoản của bạn vẫn an toàn.
                 </p>
@@ -177,8 +175,6 @@
                 Vui lòng không trả lời email này.
             </p>
         </div>
-
-        <!-- Footer -->
         <div class="footer">
             <p>
                 © {{ date('Y') }} <strong>TOIYEUPC</strong> — Thiên đường máy tính & linh kiện<br>

@@ -16,8 +16,6 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-
-        // ── [BẢO MẬT A5 + A4] Áp dụng Security Headers cho mọi request ──────
         $middleware->append(SecurityHeaders::class);
 
     })

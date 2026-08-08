@@ -1,0 +1,91 @@
+services:
+  - type: web
+    name: toiyeupc-backend
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    envVars:
+      - key: APP_NAME
+        value: TOIYEUPC
+      - key: APP_ENV
+        value: production
+      - key: APP_DEBUG
+        value: false
+      - key: APP_KEY
+        sync: false  # Bạn sẽ điền thủ công trong Render Dashboard
+      - key: APP_URL
+        sync: false  # Điền URL render của bạn sau khi deploy
+
+      # Database - kết nối đến Render PostgreSQL
+      - key: DB_CONNECTION
+        value: pgsql
+      - key: DB_HOST
+        sync: false  # Copy từ Render DB Internal Host
+      - key: DB_PORT
+        value: "5432"
+      - key: DB_DATABASE
+        sync: false  # Copy từ Render DB
+      - key: DB_USERNAME
+        sync: false  # Copy từ Render DB
+      - key: DB_PASSWORD
+        sync: false  # Copy từ Render DB
+
+      # Session & Cache
+      - key: SESSION_DRIVER
+        value: file
+      - key: CACHE_STORE
+        value: file
+      - key: QUEUE_CONNECTION
+        value: sync
+
+      # Mail
+      - key: MAIL_MAILER
+        value: smtp
+      - key: MAIL_HOST
+        value: smtp.gmail.com
+      - key: MAIL_PORT
+        value: "465"
+      - key: MAIL_ENCRYPTION
+        value: ssl
+      - key: MAIL_USERNAME
+        value: phamtrithanh1234@gmail.com
+      - key: MAIL_FROM_ADDRESS
+        value: phamtrithanh1234@gmail.com
+      - key: MAIL_FROM_NAME
+        value: TOI YEU PC
+      - key: MAIL_PASSWORD
+        sync: false  # Gmail App Password
+
+      # Cloudinary
+      - key: CLOUDINARY_CLOUD_NAME
+        value: dggcdvdxe
+      - key: CLOUDINARY_UPLOAD_PRESET
+        value: ml_default
+
+      # VNPay
+      - key: VNPAY_TMN_CODE
+        value: Z4VUEGIE
+      - key: VNPAY_HASH_SECRET
+        sync: false
+
+      # Google OAuth
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: GOOGLE_REDIRECT_URI
+        sync: false  # https://your-app.render.com/api/auth/google/callback
+
+      # Facebook OAuth
+      - key: FACEBOOK_CLIENT_ID
+        value: "925517353866169"
+      - key: FACEBOOK_CLIENT_SECRET
+        sync: false
+
+      # Gemini AI
+      - key: GEMINI_API_KEY
+        sync: false
+
+      # Python Search Service
+      - key: PYTHON_SEARCH_URL
+        sync: false  # URL python service nếu deploy riêng

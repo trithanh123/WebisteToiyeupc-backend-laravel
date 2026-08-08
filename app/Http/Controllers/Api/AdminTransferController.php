@@ -10,6 +10,7 @@ use App\Models\dieu_chuyen_serials;
 use App\Models\ton_kho_cuc_bo;
 use App\Models\sanpham_serials;
 use App\Models\san_pham;
+use App\Http\Requests\StoreAdminTransferRequest;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 
@@ -22,7 +23,9 @@ class AdminTransferController extends Controller
         if ($request->has('trang_thai')) {
             $query->where('trang_thai', $request->trang_thai);
         }
-
+        if ($request->has('tu_ngay')) {
+            $query->whereDate('created_at', '>=', $request->tu_ngay);
+        }
         $transfers = $query->orderBy('created_at', 'desc')->paginate(15);
 
         return response()->json([
@@ -53,20 +56,8 @@ class AdminTransferController extends Controller
         return response()->json(['status' => 'success', 'data' => $serials]);
     }
 
-    public function store(Request $request)
+    public function store(StoreAdminTransferRequest $request)
     {
-        $validator = Validator::make($request->all(), [
-            'ma_kho_xuat' => 'required|exists:chi_nhanh,id_chinhanh',
-            'ma_kho_nhap' => 'required|exists:chi_nhanh,id_chinhanh|different:ma_kho_xuat',
-            'chi_tiet' => 'required|array|min:1',
-            'chi_tiet.*.ma_sanpham' => 'required|exists:san_pham,id_sanpham',
-            'chi_tiet.*.so_luong' => 'required|integer|min:1',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json(['status' => 'error', 'message' => $validator->errors()->first()], 400);
-        }
-        
         foreach ($request->chi_tiet as $item) {
             $tonKho = ton_kho_cuc_bo::where('ma_chinhanh', $request->ma_kho_xuat)
                 ->where('ma_sanpham', $item['ma_sanpham'])
@@ -108,7 +99,6 @@ class AdminTransferController extends Controller
                     'so_luong' => $item['so_luong']
                 ]);
             }
-
             DB::commit();
             return response()->json(['status' => 'success', 'message' => 'Tạo phiếu điều chuyển thành công', 'data' => $phieu], 201);
         } catch (\Exception $e) {
@@ -134,14 +124,13 @@ class AdminTransferController extends Controller
 
     public function approve(Request $request, $id)
     {
-        // Duyệt phiếu & Chọn serial
         $phieu = phieu_dieu_chuyen::find($id);
         if (!$phieu || $phieu->trang_thai !== 'Chờ duyệt') {
             return response()->json(['status' => 'error', 'message' => 'Phiếu không hợp lệ hoặc đã được xử lý'], 400);
         }
 
         $validator = Validator::make($request->all(), [
-            'serials' => 'required|array', // key: id_chitiet, value: array of id_serial
+            'serials' => 'required|array',
         ]);
 
         if ($validator->fails()) {
@@ -160,17 +149,15 @@ class AdminTransferController extends Controller
                 }
 
                 foreach ($selectedSerials as $id_serial) {
-                    // Kiểm tra serial có hợp lệ và đang nằm ở kho xuất không
                     $serialObj = sanpham_serials::find($id_serial);
                     if (!$serialObj || $serialObj->tinhtrang !== 'nằm trong kho') {
                         throw new \Exception("Serial $id_serial không hợp lệ hoặc không có sẵn");
                     }
-                    
-                    // Thêm vào bảng dieu_chuyen_serials
                     dieu_chuyen_serials::create([
                         'ma_chitiet' => $ct->id_chitiet,
                         'ma_serial' => $id_serial
                     ]);
+                    $serialObj->update(['tinhtrang' => 'trong quá trình đổi trả/luân chuyển']);
                 }
             }
 
@@ -197,25 +184,24 @@ class AdminTransferController extends Controller
         DB::beginTransaction();
         try {
             foreach ($phieu->chiTiet as $ct) {
-                // Giảm tồn kho ở kho xuất
                 $tonKhoXuat = ton_kho_cuc_bo::where('ma_chinhanh', $phieu->ma_kho_xuat)
                                             ->where('ma_sanpham', $ct->ma_sanpham)->first();
                 if ($tonKhoXuat) {
                     $tonKhoXuat->decrement('soluongtonkho', $ct->so_luong);
                 }
-
-                // Tăng tồn kho ở kho nhập (tạo mới nếu chưa có)
+                
                 $tonKhoNhap = ton_kho_cuc_bo::firstOrCreate(
                     ['ma_chinhanh' => $phieu->ma_kho_nhap, 'ma_sanpham' => $ct->ma_sanpham],
                     ['soluongtonkho' => 0, 'soluongkhothap' => 5]
                 );
                 $tonKhoNhap->increment('soluongtonkho', $ct->so_luong);
-
-                // Đổi ma_tonkho của từng serial sang kho nhập
                 foreach ($ct->serials as $ds) {
                     $serialObj = sanpham_serials::find($ds->ma_serial);
                     if ($serialObj) {
-                        $serialObj->update(['ma_tonkho' => $tonKhoNhap->id_khoton]);
+                        $serialObj->update([
+                            'ma_tonkho' => $tonKhoNhap->id_khoton,
+                            'tinhtrang' => 'nằm trong kho'
+                        ]);
                     }
                 }
             }
@@ -230,9 +216,6 @@ class AdminTransferController extends Controller
         }
     }
 
-    /**
-     * Xóa phiếu điều chuyển - chỉ được xóa khi đang "Chờ duyệt"
-     */
     public function destroy($id)
     {
         $phieu = phieu_dieu_chuyen::find($id);
@@ -249,13 +232,20 @@ class AdminTransferController extends Controller
 
         DB::beginTransaction();
         try {
-            chi_tiet_dieu_chuyen::where('ma_phieu', $id)->delete();
-            $phieu->delete();
+            chi_tiet_dieu_chuyen::where('ma_phieu', $id);
+            $phieu->update(['trang_thai'=>'Đã hủy']);
             DB::commit();
-            return response()->json(['status' => 'success', 'message' => 'Đã xóa phiếu điều chuyển thành công.']);
+            return response()->json(['status' => 'success', 'message' => 'Đã hủy phiếu điều chuyển thành công.']);
         } catch (\Exception $e) {
             DB::rollBack();
-            return response()->json(['status' => 'error', 'message' => 'Lỗi khi xóa: ' . $e->getMessage()], 500);
+            return response()->json(['status' => 'error', 'message' => 'Lỗi khi hủy: ' . $e->getMessage()], 500);
         }
+    }
+     public function reject(Request $request, $id){
+        $phieu = phieu_dieu_chuyen::find($id);
+        if($phieu->trang_thai !== 'Chờ duyệt')
+            return response()->json(['status' => 'error', 'message' => 'Phiếu không hợp lệ hoặc đã được xử lý'], 400);
+        $phieu->update(['trang_thai'=>'Từ chối','ly_do'=>$request->ly_do]);
+        return response()->json(['status' => 'success', 'message' => 'Đã từ chối phiếu điều chuyển thành công.']);
     }
 }

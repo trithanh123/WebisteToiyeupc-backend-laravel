@@ -28,7 +28,7 @@ class PasswordResetController extends Controller
         $otp = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
         OtpToken::create([
             'identifier' => $identifier,
-            'token'      => Hash::make($otp),
+            'token'      => $otp,
             'expires_at' => now()->addMinutes(10),
         ]);
         if (filter_var($identifier, FILTER_VALIDATE_EMAIL)) {
@@ -46,7 +46,7 @@ class PasswordResetController extends Controller
         $otpRecord = OtpToken::where('identifier', $identifier)
                              ->latest()
                              ->first();
-        if (!$otpRecord || !Hash::check($request->otp, $otpRecord->token)) {
+        if (!$otpRecord || $request->otp !== $otpRecord->token) {
             return response()->json([
                 'status'  => 'error',
                 'message' => 'Mã OTP không chính xác!',
@@ -71,7 +71,7 @@ class PasswordResetController extends Controller
         $otpRecord = OtpToken::where('identifier', $identifier)
                              ->latest()
                              ->first();
-        if (!$otpRecord || !Hash::check($request->otp, $otpRecord->token) || $otpRecord->isExpired()) {
+        if (!$otpRecord || $request->otp !== $otpRecord->token || $otpRecord->isExpired()) {
             return response()->json([
                 'status'  => 'error',
                 'message' => 'Phiên xác thực đã hết hạn, vui lòng bắt đầu lại!',

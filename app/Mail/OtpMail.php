@@ -10,16 +10,19 @@ class OtpMail extends Mailable
     use Queueable, SerializesModels;
     public string $otp;
     public string $userName;
-    public function __construct(string $otp, string $userName = 'Quý khách')
+    public string $type;
+    public function __construct(string $otp, string $userName = 'Quý khách', string $type = 'reset')
     {
         $this->otp      = $otp;
         $this->userName = $userName;
+        $this->type     = $type;  
     }
     public function envelope(): Envelope
     {
-        return new Envelope(
-            subject: '🔐 [TOIYEUPC] Mã xác nhận đặt lại mật khẩu',
-        );
+        $subject = $this->type === 'register'
+            ? '🎉 [TOIYEUPC] Mã xác nhận đăng ký tài khoản'
+            : '🔐 [TOIYEUPC] Mã xác nhận đặt lại mật khẩu';
+        return new Envelope(subject: $subject);
     }
     public function content(): Content
     {

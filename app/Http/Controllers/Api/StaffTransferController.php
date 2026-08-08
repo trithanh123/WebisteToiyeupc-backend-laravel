@@ -11,8 +11,10 @@ use App\Models\chi_tiet_dieu_chuyen;
 use App\Models\dieu_chuyen_serials;
 use App\Models\ton_kho_cuc_bo;
 use App\Models\sanpham_serials;
+use App\Http\Requests\StoreStaffTransferRequest;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
+
 
 class StaffTransferController extends Controller
 {
@@ -61,7 +63,6 @@ class StaffTransferController extends Controller
         $ma_sanpham = $request->ma_sanpham;
         $ma_chinhanh = $request->ma_chinhanh;
         
-        // Staff chi duoc lay serial cua kho xuat neu kho xuat la cua minh
         if ($chiNhanh->id_chinhanh != $ma_chinhanh) {
             return response()->json(['status' => 'error', 'message' => 'Từ chối truy cập. Chỉ xem được tồn kho chi nhánh bạn.'], 403);
         }
@@ -83,30 +84,16 @@ class StaffTransferController extends Controller
         return response()->json(['status' => 'success', 'data' => $serials]);
     }
 
-    public function store(Request $request)
+    public function store(StoreStaffTransferRequest $request)
     {
         $chiNhanh = $this->getStaffBranch($request);
         if (!$chiNhanh) {
             return response()->json(['status' => 'error', 'message' => 'Bạn chưa được phân công chi nhánh'], 403);
         }
 
-        $validator = Validator::make($request->all(), [
-            'ma_kho_xuat' => 'required|exists:chi_nhanh,id_chinhanh',
-            'ma_kho_nhap' => 'required|exists:chi_nhanh,id_chinhanh|different:ma_kho_xuat',
-            'chi_tiet' => 'required|array|min:1',
-            'chi_tiet.*.ma_sanpham' => 'required|exists:san_pham,id_sanpham',
-            'chi_tiet.*.so_luong' => 'required|integer|min:1',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json(['status' => 'error', 'message' => $validator->errors()->first()], 400);
-        }
-
-        // Kiem tra staff phai thuoc 1 trong 2 kho
         if ($request->ma_kho_xuat != $chiNhanh->id_chinhanh && $request->ma_kho_nhap != $chiNhanh->id_chinhanh) {
             return response()->json(['status' => 'error', 'message' => 'Bạn chỉ được tạo phiếu liên quan đến chi nhánh của mình'], 403);
         }
-        // Kiem tra ton kho cua kho xuat
         foreach ($request->chi_tiet as $item) {
             $tonKho = ton_kho_cuc_bo::where('ma_chinhanh', $request->ma_kho_xuat)
                 ->where('ma_sanpham', $item['ma_sanpham'])
@@ -171,7 +158,6 @@ class StaffTransferController extends Controller
             return response()->json(['status' => 'error', 'message' => 'Không tìm thấy phiếu'], 404);
         }
 
-        // Check quyen
         if ($chiNhanh && $phieu->ma_kho_xuat != $chiNhanh->id_chinhanh && $phieu->ma_kho_nhap != $chiNhanh->id_chinhanh) {
             return response()->json(['status' => 'error', 'message' => 'Không có quyền truy cập phiếu này'], 403);
         }
@@ -192,7 +178,7 @@ class StaffTransferController extends Controller
             return response()->json(['status' => 'error', 'message' => 'Phiếu không hợp lệ hoặc đã được xử lý'], 400);
         }
 
-        // Validate quyen: Chi nhan vien kho xuat moi dc duyet xuat hang
+        
         if (!$chiNhanh || $phieu->ma_kho_xuat != $chiNhanh->id_chinhanh) {
             return response()->json(['status' => 'error', 'message' => 'Từ chối truy cập. Chỉ kho xuất mới có quyền duyệt xuất hàng.'], 403);
         }
@@ -221,7 +207,7 @@ class StaffTransferController extends Controller
                     if (!$serialObj || $serialObj->tinhtrang !== 'nằm trong kho') {
                         throw new \Exception("Serial $id_serial không hợp lệ hoặc không có sẵn");
                     }
-                    // Validate: Serial phai nam trong kho xuat hien tai
+                
                     $tonKhoXuat = ton_kho_cuc_bo::where('ma_chinhanh', $phieu->ma_kho_xuat)->where('ma_sanpham', $ct->ma_sanpham)->first();
                     if (!$tonKhoXuat || $serialObj->ma_tonkho != $tonKhoXuat->id_khoton) {
                         throw new \Exception("Serial $id_serial không nằm trong kho xuất");
@@ -231,6 +217,7 @@ class StaffTransferController extends Controller
                         'ma_chitiet' => $ct->id_chitiet,
                         'ma_serial' => $id_serial
                     ]);
+                    $serialObj->update(['tinhtrang' => 'trong quá trình đổi trả/luân chuyển']);
                 }
             }
 
@@ -256,7 +243,6 @@ class StaffTransferController extends Controller
             return response()->json(['status' => 'error', 'message' => 'Phiếu không hợp lệ hoặc chưa được vận chuyển'], 400);
         }
 
-        // Validate quyen: Chi nhan vien kho nhap moi dc xac nhan nhan hang
         if (!$chiNhanh || $phieu->ma_kho_nhap != $chiNhanh->id_chinhanh) {
             return response()->json(['status' => 'error', 'message' => 'Từ chối truy cập. Chỉ kho nhận mới có quyền xác nhận nhận hàng.'], 403);
         }
@@ -264,25 +250,23 @@ class StaffTransferController extends Controller
         DB::beginTransaction();
         try {
             foreach ($phieu->chiTiet as $ct) {
-                // Giam ton kho o kho xuat
                 $tonKhoXuat = ton_kho_cuc_bo::where('ma_chinhanh', $phieu->ma_kho_xuat)
                                             ->where('ma_sanpham', $ct->ma_sanpham)->first();
                 if ($tonKhoXuat) {
                     $tonKhoXuat->decrement('soluongtonkho', $ct->so_luong);
                 }
-
-                // Tang ton kho o kho nhap
                 $tonKhoNhap = ton_kho_cuc_bo::firstOrCreate(
                     ['ma_chinhanh' => $phieu->ma_kho_nhap, 'ma_sanpham' => $ct->ma_sanpham],
                     ['soluongtonkho' => 0, 'soluongkhothap' => 5]
                 );
                 $tonKhoNhap->increment('soluongtonkho', $ct->so_luong);
-
-                // Doi ma_tonkho cua tung serial sang kho nhap
                 foreach ($ct->serials as $ds) {
                     $serialObj = sanpham_serials::find($ds->ma_serial);
                     if ($serialObj) {
-                        $serialObj->update(['ma_tonkho' => $tonKhoNhap->id_khoton]);
+                        $serialObj->update([
+                            'ma_tonkho' => $tonKhoNhap->id_khoton,
+                            'tinhtrang' => 'nằm trong kho'
+                        ]);
                     }
                 }
             }

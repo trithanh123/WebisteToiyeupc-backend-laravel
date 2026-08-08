@@ -10,31 +10,11 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 use Laravel\Socialite\Facades\Socialite;
 use App\Http\Requests\RegisterRequest;
+use Illuminate\Support\Facades\Mail;
+
+use App\Mail\OtpMail;
 class AuthController extends Controller
 {
-    public function register(RegisterRequest $request)
-    {
-        $user = Nguoi_dung::create([
-            'ten'       => $request->ho . ' ' . $request->ten,
-            'email'     => $request->email,
-            'sdt'       => $request->sdt,
-            'matkhau'   => Hash::make($request->matkhau),
-            'phanquyen' => 3,
-        ]);
-        ThongBao::create([
-            'loai_thong_bao' => 'USER',
-            'tieu_de'        => 'Khách hàng mới',
-            'noi_dung'       => 'Khách hàng ' . $user->ten . ' vừa đăng ký tài khoản.',
-            'link'           => '/admin/nguoi-dung'
-        ]);
-        $token = $user->createToken('auth_token')->plainTextToken;
-        return response()->json([
-            'status'  => 'success',
-            'message' => 'Đăng ký thành công!',
-            'token'   => $token,
-            'user'    => $user
-        ]);
-    }
     
     public function login(LoginAuthRequest $request)
     {
@@ -66,6 +46,8 @@ class AuthController extends Controller
             'message' => 'Đăng xuất thành công!'
         ]);
     }
+
+   
     public function redirectToProvider($provider)
     {
         return Socialite::driver($provider)->stateless()->redirect();
@@ -166,5 +148,59 @@ class AuthController extends Controller
                 'phanquyen' => $user->phanquyen,
             ]
         ]);
+    }
+    public function sendRegisterOTP(RegisterRequest $request){
+        $otp = rand(100000,999999);
+        $identifier = $request->email ? $request->email : $request->sdt;
+        Cache::put('register_otp_'.$identifier,
+        ['otp'=>$otp,
+        'data'=>$request->all()],now()->addMinutes(5));
+        if($request->email){
+            try{
+                Mail::to($request->email)->send(new OtpMail($otp,$request->ten,'register'));
+            }catch(\Exception $e){
+                return response()->json([
+                    'status'=> 'error',
+                    'message'=> 'Không thể gửi mã OTP. Vui lòng thử lại',
+                ],500);
+            }
+        }
+        return response()->json([
+            'status'=> 'success',
+            'message'=> 'Đã gửi mã OTP thành công',
+        ]);
+    }
+    public function verifyRegisterOTP(Request $request){
+        $identifier = $request->email ? $request->email : $request->sdt;
+        $cachedData = Cache::get('register_otp_'.$identifier);
+        if(!$cachedData || $cachedData['otp'] != $request->otp){
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Mã OTP không chính xác hoặc đã hết hạn',
+            ]);
+        }
+        $data = $cachedData['data'];
+          $user = Nguoi_dung::create([
+            'ten'       => $data['ho'] . ' ' . $data['ten'],
+            'email'     => $data['email'] ?? null,
+            'sdt'       => $data['sdt'] ?? null,
+            'matkhau'   => Hash::make($data['matkhau']),
+            'phanquyen' => 3,
+        ]);
+        ThongBao::create([
+            'loai_thong_bao' => 'USER',
+            'tieu_de'        => 'Khách hàng mới',
+            'noi_dung'       => 'Khách hàng ' . $user->ten . ' vừa đăng ký tài khoản.',
+            'link'           => '/admin/nguoi-dung'
+        ]);
+        $token = $user->createToken('auth_token')->plainTextToken;
+        Cache::forget('register_otp_' . $identifier);
+        return response()->json([
+            'status'  => 'success',
+            'message' => 'Xác thực OTP và Đăng ký thành công!',
+            'token'   => $token,
+            'user'    => $user
+        ]);
+
     }
 }

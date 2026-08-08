@@ -30,7 +30,7 @@ class GenerateProductVectors extends Command
 
         $this->info(" Python Service đang chạy tại {$pythonServiceUrl}");
         $products = san_pham::with('danhMuc:id_danhmuc,ten_danhmuc')
-            ->get(['id_sanpham', 'tensp', 'gia', 'motasanpham', 'specifications', 'ma_danhmuc']);
+            ->get(['id_sanpham', 'masp', 'tensp', 'gia', 'motasanpham', 'specifications', 'ma_danhmuc']);
 
         if ($products->isEmpty()) {
             $this->info('Không có sản phẩm nào để index.');
@@ -52,13 +52,14 @@ class GenerateProductVectors extends Command
             }
 
             try {
-                $response = Http::timeout(15)->post("{$pythonServiceUrl}/index", [
-                    'id_sanpham'     => $product->id_sanpham,
+                $response = Http::timeout(15)->post("{$pythonServiceUrl}/upsert", [
+                    'id'             => $product->id_sanpham,
+                    'masp'           => $product->masp,
                     'tensp'          => $product->tensp,
                     'gia'            => (int) $product->gia,
                     'motasanpham'    => $product->motasanpham ?? '',
                     'specifications' => $specs ?? [],
-                    'ten_danhmuc'    => optional($product->danhMuc)->ten_danhmuc ?? '',
+                    'ten_danhmuc'    => $product->danhMuc->ten_danhmuc ?? '',
                 ]);
 
                 if ($response->successful()) {

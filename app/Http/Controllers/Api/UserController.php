@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Validator;
 use App\Http\Requests\StoreUserRequest;
 use App\Http\Requests\UpdateUserRequest;
 use App\Models\ThongBao;
+use Illuminate\Support\Facades\Mail;
 class UserController extends Controller
 {
     public function index(Request $request)
@@ -20,7 +21,6 @@ class UserController extends Controller
                     1 => 'Admin',
                     2 => 'Nhân viên',
                     3 => 'Khách hàng',
-                    4 => 'Khách VIP',
                     default => 'Không xác định',
                 };
                 return $user;
@@ -84,7 +84,7 @@ class UserController extends Controller
                 'message' => 'Không tìm thấy người dùng với ID = ' . $id,
             ], 404);
         }
-        $user->update($request->validated());
+         $user->update($request->validated());
         return response()->json([
             'status'  => 'success',
             'message' => 'Cập nhật thông tin người dùng thành công!',
@@ -97,7 +97,7 @@ class UserController extends Controller
             ],
         ], 200);
     }
-    public function destroy(UpdateUserRequest $request, $id)
+    public function destroy(Request $request, $id)
     {
         $user = Nguoi_dung::find($id);
         if (!$user) {

@@ -33,22 +33,23 @@ class StoreUserRequest extends FormRequest
                 'required_without:email',
                 'nullable',
                 'string',
-                'regex:/^[0-9]{9,11}$/',
+                'regex:/^[0-9]{9}$/',
                 'unique:nguoi_dung,sdt',
             ],
             'matkhau'   => 'required|string|min:8',
-            'phanquyen' => 'nullable|integer|in:1,2,3,4',
+            'phanquyen' => 'nullable|integer|in:1,2,3',
         ];
     }
     public function messages(){
         return [
             'email.required_without' => 'Vui lòng nhập Email hoặc Số điện thoại để tạo tài khoản.',
-            'sdt.required_without'   => 'Vui lòng nhập Email hoặc Số điện thoại để tạo tài khoản.',
+            'sdt.required_without'   => 'Vui lòng nhập Số điện thoại để tạo tài khoản.',
             'ten.required'      => 'Vui lòng nhập họ tên.',
             'email.email'       => 'Email không hợp lệ. Vui lòng nhập đúng định dạng (ví dụ: abc@gmail.com).',
             'email.unique'      => 'Email này đã được sử dụng bởi tài khoản khác.',
             'sdt.regex'         => 'Số điện thoại chỉ được nhập số Không được nhập chữ hoặc ký tự đặc biệt.',
             'sdt.unique'        => 'Số điện thoại này đã được sử dụng bởi tài khoản khác.',
+            'sdt.regex'         => 'Số điện thoại phải bắt đầu bằng 0 và có 9 số.',
             'matkhau.required'  => 'Vui lòng nhập mật khẩu.',
             'matkhau.min'       => 'Mật khẩu phải có ít nhất 8 ký tự.',
             'phanquyen.in'      => 'Phân quyền không hợp lệ.',

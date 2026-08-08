@@ -12,7 +12,7 @@ class BranchController extends Controller
 {
     public function index()
     {
-        $branches = chi_nhanh::orderBy('id_chinhanh', 'desc')->get();
+        $branches = chi_nhanh::withTrashed()->orderBy('id_chinhanh', 'desc')->get();
         return response()->json([
             'status' => 'success',
             'total'  => $branches->count(),
@@ -68,7 +68,24 @@ class BranchController extends Controller
 
         return response()->json([
             'status'  => 'success',
-            'message' => 'Đã xóa chi nhánh thành công!'
+            'message' => 'Đã ẩn chi nhánh thành công!'
+        ], 200);
+    }
+
+    public function restore($id)
+    {
+        $branch = chi_nhanh::withTrashed()->find($id);
+        if (!$branch) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Không tìm thấy chi nhánh'
+            ], 404);
+        }
+        $branch->restore();
+
+        return response()->json([
+            'status'  => 'success',
+            'message' => 'Đã khôi phục chi nhánh thành công!'
         ], 200);
     }
 }

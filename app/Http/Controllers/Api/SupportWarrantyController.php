@@ -221,8 +221,15 @@ class SupportWarrantyController extends Controller
         $serials = DB::table('sanpham_serials as sp')
             ->join('ton_kho_cuc_bo as tk', 'sp.ma_tonkho', '=', 'tk.id_khoton')
             ->join('san_pham as s', 'tk.ma_sanpham', '=', 's.id_sanpham')
+            ->leftJoin('chi_tiet_don_hang__serial as cds', 'sp.id_serial', '=', 'cds.ma_serial')
+            ->leftJoin('chi_tiet_don_hang as ctd', 'cds.ma_chitietdh', '=', 'ctd.id_chitietdh')
+            ->leftJoin('don_hang as dh', 'ctd.ma_donhang', '=', 'dh.id_donhang')
+            ->leftJoin('nguoi_dung as nd', 'dh.ma_nguoidung', '=', 'nd.id_nguoidung')
             ->where('sp.serial_code', 'like', '%' . $request->serial_code . '%')
-            ->select('sp.id_serial', 'sp.serial_code', 'sp.tinhtrang', 's.tensp', 's.thumbail')
+            ->select(
+                'sp.id_serial', 'sp.serial_code', 'sp.tinhtrang', 's.tensp', 's.thumbail',
+                'dh.id_donhang', 'nd.id_nguoidung', 'nd.ten as ten_khachhang', 'nd.sdt as sdt_khach'
+            )
             ->limit(10)
             ->get();
 

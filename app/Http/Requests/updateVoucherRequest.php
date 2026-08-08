@@ -27,24 +27,31 @@ class updateVoucherRequest extends FormRequest
     {   
         $id = $this->route('id');
         return [
-            'Tenkhuyenmai'=> 'nullable|string|max:255',
-            'ma_khuyenmai'=> 'nullable|string|max:100|unique:khuyen_mai,ma_khuyenmai,' . $id . ',id_khuyenmai',
+            'tenkhuyenmai'=> 'nullable|string|max:255',
+            'ma_voucher'=> 'nullable|string|max:100|unique:khuyen_mai,ma_voucher,' . $id . ',id_khuyenmai',
             'loai_giamgia' => 'nullable|string|in:Phần trăm,Số tiền',
             'gia_trigiam'=> 'nullable|numeric|min:0',
             'don_toithieu'=> 'nullable|numeric|min:0',
             'giam_toida'=> 'nullable|numeric|min:0',
             'soluongma'=> 'nullable|integer|min:0',
             'ngaybdchuongtrinh'=> 'nullable|date',
-            'ngayketthucchuongtrinh'=> 'nullable|date|after:ngaybdchuongtrinh',
+            'ngayketthucchuongtrinh'=> 'nullable|date|after:ngaybdchuongtrinh|after:today',
         ];
     }
     public function messages(){
         return [
-            'ma_khuyenmai.unique'=> 'Mã voucher này đã tồn tại, vui lòng nhập mã khác.',
-            'ngayketthucchuongtrinh.after' => 'Ngày kết thúc bắt buộc phải lớn hơn ngày bắt đầu.',
-            'gia_trigiam.min'=> 'Giá trị giảm tuyệt đối không được là số âm.',
-            'soluongma.min'=> 'Số lượng mã tuyệt đối không được là số âm.',
+            'ma_voucher.unique'               => 'Mã voucher này đã tồn tại, vui lòng nhập mã khác.',
+            'ngayketthucchuongtrinh.after'    => 'Ngày kết thúc phải lớn hơn ngày bắt đầu.',
+            'ngayketthucchuongtrinh.after_or_equal' => 'Ngày kết thúc không được là ngày trong quá khứ.',
+            'gia_trigiam.min'                 => 'Giá trị giảm tuyệt đối không được là số âm.',
+            'soluongma.min'                   => 'Số lượng mã tuyệt đối không được là số âm.',
         ];
+    } public function withValidator($validator){
+        $validator->after(function($validator){
+            if($this->loai_giamgia === 'Phần trăm' && $this->gia_trigiam >100){
+                 $validator->errors()->add("gia_trigiam","Giá trị giảm không được vượt quá 100%");
+            }
+        });
     }
     protected function failedValidation(Validator $validator)
     {

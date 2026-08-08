@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Log;
 class ProductController extends Controller
 {
     public function index(Request $request)
-    {
+    {   
         $branchId = $request->query('branch_id');
         $query = san_pham::with(['danhMuc:id_danhmuc,ten_danhmuc,slug']);
         if ($branchId) {
@@ -25,6 +25,7 @@ class ProductController extends Controller
             ->get()
             ->map(function ($product) {
                 $product->ten_danhmuc = $product->danhMuc ? $product->danhMuc->ten_danhmuc : 'Chưa phân loại';
+                unset($product->danhMuc);
                 return $product;
             });
         return response()->json([
@@ -42,16 +43,12 @@ class ProductController extends Controller
         $minPrice  = $request->query('min_price', 0);
         $maxPrice  = $request->query('max_price', 999999999);
         $perPage   = (int) $request->query('per_page', 16);
-
-     
         $category = null;
         if ($slugOrId) {
             $category = danh_muc::where('slug', $slugOrId)
                 ->orWhere('id_danhmuc', is_numeric($slugOrId) ? $slugOrId : 0)
                 ->first();
         }
-
-       
         $categoryIds = [];
         $breadcrumb = [];
         if ($category) {
@@ -236,11 +233,8 @@ class ProductController extends Controller
                 'message' => 'Không tìm thấy sản phẩm.',
             ], 404);
         }
-
         $productId = $product->id_sanpham;
         $product->delete();
-
-        // Xóa embedding tương ứng khỏi Qdrant
         try {
             $pythonServiceUrl = env('PYTHON_SEARCH_URL', 'http://localhost:8001');
             Http::timeout(5)->delete("{$pythonServiceUrl}/delete/{$productId}");
@@ -253,6 +247,44 @@ class ProductController extends Controller
             'message' => 'Đã xóa sản phẩm thành công!',
         ], 200);
     }
+    
+    public function uploadImage(Request $request)
+    {
+        if (!$request->hasFile('image')) {
+            return response()->json(['message' => 'No image file provided'], 400);
+        }
+
+        $file = $request->file('image');
+        
+        $cloudName = env('CLOUDINARY_CLOUD_NAME');
+        $uploadPreset = env('CLOUDINARY_UPLOAD_PRESET');
+
+        if (!$cloudName || !$uploadPreset) {
+            return response()->json(['message' => 'Cloudinary is not configured. Please add CLOUDINARY_CLOUD_NAME and CLOUDINARY_UPLOAD_PRESET to .env'], 500);
+        }
+
+        $response =Http::attach(
+            'file', file_get_contents($file->getRealPath()), $file->getClientOriginalName()
+        )->post("https://api.cloudinary.com/v1_1/{$cloudName}/image/upload", [
+            'upload_preset' => $uploadPreset,
+        ]);
+
+        if ($response->successful()) {
+            $data = $response->json();
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Image uploaded successfully',
+                'url' => $data['secure_url']
+            ], 200);
+        }
+
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Failed to upload image to Cloudinary',
+            'error' => $response->json()
+        ], 500);
+    }
 
 
 
@@ -260,7 +292,8 @@ class ProductController extends Controller
     {
         $queryText = $request->input('query');
         $branchId  = $request->input('branch_id');
-
+        $topK      = $request->input('top_k', 10);
+        
         if (!$queryText) {
             return response()->json(['data' => []]);
         }
@@ -269,7 +302,7 @@ class ProductController extends Controller
             $searchResponse   = Http::timeout(15)->post("{$pythonServiceUrl}/search", [
                 'query'     => $queryText,
                 'branch_id' => $branchId,
-                'top_k'     => 5,
+                'top_k'     => $topK * 3, // Oversampling (lấy nhiều hơn để trừ hao DB filter)
             ]);
 
             if (!$searchResponse->successful()) {
@@ -295,6 +328,8 @@ class ProductController extends Controller
 
         $orderedIds = array_column($results, 'id');
         $scoreMap   = array_column($results, 'score', 'id');
+        $filters    = $searchData['filters'] ?? [];
+
         $dbQuery = san_pham::with(['tonKho' => function ($q) use ($branchId) {
             if ($branchId) {
                 $q->where('ma_chinhanh', $branchId);
@@ -302,6 +337,34 @@ class ProductController extends Controller
         }])
         ->select('id_sanpham', 'masp', 'tensp', 'gia', 'thumbail', 'motasanpham', 'specifications')
         ->whereIn('id_sanpham', $orderedIds);
+
+        // Lọc nghiêm ngặt PC hoặc Laptop dựa trên từ khóa người dùng
+        $lowerQuery = mb_strtolower($queryText);
+        $isPcQuery = preg_match('/\b(pc|máy tính|máy tính để bàn)\b/u', $lowerQuery) && !preg_match('/\blaptop\b/u', $lowerQuery);
+        $isLaptopQuery = preg_match('/\blaptop\b/u', $lowerQuery) && !preg_match('/\b(pc|máy tính để bàn)\b/u', $lowerQuery);
+
+        if ($isPcQuery) {
+            $dbQuery->where(function($query) {
+                $query->whereDoesntHave('danhMuc', function ($q) {
+                    $q->where('ten_danhmuc', 'like', '%Laptop%');
+                })->where('tensp', 'not like', '%Laptop%');
+            });
+        } elseif ($isLaptopQuery) {
+            $dbQuery->where(function($query) {
+                $query->whereHas('danhMuc', function ($q) {
+                    $q->where('ten_danhmuc', 'like', '%Laptop%');
+                })->orWhere('tensp', 'like', '%Laptop%');
+            });
+        }
+
+        // Double-check filter giá từ Python (phòng trường hợp Qdrant payload stale)
+        if (!empty($filters['gia_lte'])) {
+            $dbQuery->where('gia', '<=', (int)$filters['gia_lte']);
+        }
+        if (!empty($filters['gia_gte'])) {
+            $dbQuery->where('gia', '>=', (int)$filters['gia_gte']);
+        }
+
         if ($branchId) {
             $dbQuery->whereHas('tonKho', function ($q) use ($branchId) {
                 $q->where('ma_chinhanh', $branchId)->where('soluongtonkho', '>', 0);
@@ -315,7 +378,9 @@ class ProductController extends Controller
                 $p['ai_score'] = $scoreMap[$id] ?? 0;
                 return $p;
             })
+            ->take($topK)
             ->values();
+
 
         return response()->json([
             'query'    => $queryText,
@@ -324,10 +389,6 @@ class ProductController extends Controller
             'data'     => $products,
         ]);
     }
-    /**
-     * Gửi dữ liệu sản phẩm sang Python service để tạo/cập nhật vector embedding.
-     * Nếu service không chạy, exception sẽ được bắt ở nơi gọi.
-     */
     private function updateProductEmbedding(san_pham $product): void
     {
         $pythonServiceUrl = env('PYTHON_SEARCH_URL', 'http://localhost:8001');
@@ -344,7 +405,7 @@ class ProductController extends Controller
             'specifications' => $product->specifications,
         ]);
     }
-    public function checkStock($id)
+    public function checkStock($id, Request $request)
     {
         if ($id === 'undefined' || !$id) {
             return response()->json([
@@ -354,8 +415,8 @@ class ProductController extends Controller
             ], 200);
         }
 
-        $product = san_pham::with('tonKho')->find($id);
-        
+        $product = san_pham::with(['tonKho.chiNhanh'])->find($id);
+
         if (!$product) {
             return response()->json([
                 'is_available' => false,
@@ -364,12 +425,81 @@ class ProductController extends Controller
             ], 200);
         }
 
-        $totalStock = $product->tonKho->sum('soluongtonkho');
+        $otherBranches = [];
+        if ($request->has('branch_id') && $request->branch_id) {
+            $branchId = (int) $request->branch_id;
+            $totalStock = $product->tonKho->where('ma_chinhanh', $branchId)->sum('soluongtonkho');
+            $otherBranches = $product->tonKho->where('ma_chinhanh', '!=', $branchId)
+                ->where('soluongtonkho', '>', 0)
+                ->map(function ($tk) {
+                    return [
+                        'id_chinhanh' => $tk->ma_chinhanh,
+                        'ten_chinhanh' => $tk->chiNhanh ? $tk->chiNhanh->ten_chinhanh : 'Chi nhánh ID ' . $tk->ma_chinhanh,
+                        'stock' => $tk->soluongtonkho
+                    ];
+                })->values();
+        } else {
+            $totalStock = $product->tonKho->sum('soluongtonkho');
+        }
 
         return response()->json([
             'is_available' => $totalStock > 0,
-            'stock' => $totalStock
+            'stock' => $totalStock,
+            'other_branches' => $otherBranches
         ], 200);
     }
 
+    public function buildPc(Request $request)
+    {
+        $query = $request->input('query');
+        if (empty($query)) {
+            return response()->json(['message' => 'Vui lòng nhập câu hỏi build máy.'], 400);
+        }
+        
+        $pythonServiceUrl = env('PYTHON_SERVICE_URL', 'http://localhost:8001');
+        
+        try {
+            $response = Http::timeout(60)->post("{$pythonServiceUrl}/ai-build-pc", [
+                'query' => $query
+            ]);
+            
+            if ($response->successful()) {
+                $data = $response->json();
+                
+                // Get fresh prices and stock from MySQL for each component.
+                // Use 'masp' (product code e.g. "DK-1080") as the cross-reference key — it exists
+                // in both Qdrant payload and MySQL and is guaranteed to match correctly.
+                if (isset($data['build']) && is_array($data['build'])) {
+                    $build = [];
+                    foreach ($data['build'] as $item) {
+                        $masp = $item['masp'] ?? null;
+                        $product = null;
+                        if ($masp) {
+                            $product = san_pham::with(['danhMuc', 'tonKho' => function ($q) {
+                                $q->where('ma_chinhanh', request()->header('Branch-Id') ?? 1);
+                            }])->where('masp', $masp)->first();
+                        }
+                        
+                        if ($product) {
+                            // Use fresh MySQL data (correct price, name, stock)
+                            $build[] = $product;
+                        } else {
+                            // Fallback: Qdrant data (price may be stale)
+                            $build[] = $item;
+                        }
+                    }
+                    $data['build'] = $build;
+                }
+                
+                return response()->json($data);
+            }
+            
+            return response()->json(['message' => 'Không tìm thấy cấu hình phù hợp với ngân sách và yêu cầu.'], 404);
+            
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Lỗi kết nối đến Python AI Service: ' . $e->getMessage()
+            ], 500);
+        }
+    }
 }

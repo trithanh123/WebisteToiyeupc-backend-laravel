@@ -39,7 +39,7 @@ class PurchaseController extends Controller
                 'ma_diachinguoidung' => $diaChiId,
                 'tongtien' => $request->tongtien,
                 'phuong_thuc_tt' => $request->phuong_thuc_tt,
-                'trang_thai_dh' => 'Chờ duyệt',
+                'trang_thai_dh'=> 'Chờ duyệt',
                 'ghichu' => $request->ghichu,
                 'thoigiandathang' => now(),
                 'created_at' => now(),
@@ -54,14 +54,15 @@ class PurchaseController extends Controller
                     ->first();
 
                 if (!$inventory || $inventory->soluongtonkho < $item['soluong']) {
-                    DB::rollBack(); 
+                    DB::rollBack();
+                    $tenSp = DB::table('san_pham')->where('id_sanpham', $item['ma_sanpham'])->value('tensp');
+                    $available = $inventory ? $inventory->soluongtonkho : 0;
                     return response()->json([
                         'status' => 'error',
-                        'message' => 'Sản phẩm ID ' . $item['ma_sanpham'] . ' không đủ số lượng trong kho tại chi nhánh này.'
+                        'message' => "Sản phẩm \"{$tenSp}\" chỉ còn {$available} sản phẩm trong kho, không đủ số lượng yêu cầu ({$item['soluong']})."
                     ], 400);
                 }
 
-               
                 DB::table('ton_kho_cuc_bo')
                     ->where('ma_chinhanh', $request->ma_chinhanh)
                     ->where('ma_sanpham', $item['ma_sanpham'])
@@ -288,6 +289,23 @@ class PurchaseController extends Controller
             ->select('chi_tiet_don_hang.*', 'san_pham.tensp', 'san_pham.thumbail')
             ->where('chi_tiet_don_hang.ma_donhang', $id)
             ->get();
+            
+        foreach ($details as $item) {
+            $khoton = DB::table('ton_kho_cuc_bo')
+                ->where('ma_sanpham', $item->ma_sanpham)
+                ->where('ma_chinhanh', $order->ma_chinhanh)
+                ->first();
+                
+            if ($khoton) {
+                $item->available_serials = DB::table('sanpham_serials')
+                    ->where('ma_tonkho', $khoton->id_khoton)
+                    ->whereIn('tinhtrang', ['nằm trong kho', 'trong kho'])
+                    ->select('id_serial', 'serial_code')
+                    ->get();
+            } else {
+                $item->available_serials = [];
+            }
+        }
         $payment = DB::table('thanh_toan')->where('ma_donhang', $id)->first();
         return response()->json([
             'status' => 'success',
@@ -303,34 +321,118 @@ class PurchaseController extends Controller
         $request->validate([
             'trang_thai_dh' => 'required|string'
         ]);
+        
+        $newState = $request->trang_thai_dh;
+        if ($newState === 'Đang giao' || $newState === 'Đang giao hàng') {
+            $request->validate([
+                'serials' => 'required|array',
+                'serials.*.id_chitietdh' => 'required|integer',
+                'serials.*.id_serial' => 'required|integer',
+            ], [
+                'serials.required' => 'Vui lòng cung cấp danh sách serial khi giao hàng.'
+            ]);
+        }
+
         $order = DB::table('don_hang')->where('id_donhang', $id)->first();
         if (!$order) {
             return response()->json(['status' => 'error', 'message' => 'Không tìm thấy đơn hàng'], 404);
         }
-        DB::table('don_hang')->where('id_donhang', $id)->update([
-            'trang_thai_dh' => $request->trang_thai_dh,
-            'updated_at' => now()
-        ]);
-        ThongBao::create([
-            'loai_thong_bao' => 'ORDER',
-            'tieu_de' => 'Cập nhật đơn hàng',
-            'noi_dung' => 'Đơn hàng #' . $id . ' vừa được chuyển sang trạng thái: ' . $request->trang_thai_dh,
-            'link' => '/admin/don-hang/' . $id
-        ]);
-        
-        
-        ThongBaoKhachHang::create([
-            'id_nguoidung' => $order->ma_nguoidung,
-            'loai_thong_bao' => 'don_hang',
-            'tieu_de' => 'Cập nhật đơn hàng',
-            'noi_dung' => 'Đơn hàng #' . $id . ' của bạn đã được cập nhật trạng thái thành: ' . $request->trang_thai_dh,
-            'link' => '/tai-khoan/don-hang'
-        ]);
 
-        return response()->json([
-            'status' => 'success',
-            'message' => 'Đã cập nhật trạng thái đơn hàng thành: ' . $request->trang_thai_dh
-        ]);
+        try {
+            DB::beginTransaction();
+
+            if ($newState === 'Đang giao' || $newState === 'Đang giao hàng') {
+                foreach ($request->serials as $item) {
+                    \App\Models\ChiTietDonHangSerial::create([
+                        'ma_chitietdh' => $item['id_chitietdh'],
+                        'ma_serial'    => $item['id_serial']
+                    ]);
+                    DB::table('sanpham_serials')
+                        ->where('id_serial', $item['id_serial'])
+                        ->update([
+                            'tinhtrang'  => 'đã bán', 
+                            'updated_at' => now()
+                        ]);
+                }
+            }
+
+            if ($newState === 'Giao thất bại') {
+                // Restore local stock
+                $items = DB::table('chi_tiet_don_hang')->where('ma_donhang', $id)->get();
+                foreach ($items as $item) {
+                    DB::table('ton_kho_cuc_bo')
+                        ->where('ma_chinhanh', $order->ma_chinhanh)
+                        ->where('ma_sanpham', $item->ma_sanpham)
+                        ->increment('soluongtonkho', $item->soluong);
+                }
+
+                // Revert serials
+                $serials = DB::table('chi_tiet_don_hang__serial')
+                    ->join('chi_tiet_don_hang', 'chi_tiet_don_hang.id_chitietdh', '=', 'chi_tiet_don_hang__serial.ma_chitietdh')
+                    ->where('chi_tiet_don_hang.ma_donhang', $id)
+                    ->pluck('chi_tiet_don_hang__serial.ma_serial');
+                
+                if ($serials->isNotEmpty()) {
+                    DB::table('sanpham_serials')
+                        ->whereIn('id_serial', $serials)
+                        ->update([
+                            'tinhtrang' => 'nằm trong kho',
+                            'updated_at' => now()
+                        ]);
+                    
+                    // Delete mapping
+                    DB::table('chi_tiet_don_hang__serial')
+                        ->whereIn('ma_serial', $serials)
+                        ->delete();
+                }
+
+                // Mark payment as failed
+                DB::table('thanh_toan')->where('ma_donhang', $id)->update([
+                    'trangthai'  => 'Thất bại',
+                    'updated_at' => now()
+                ]);
+            }
+
+            DB::table('don_hang')->where('id_donhang', $id)->update([
+                'trang_thai_dh' => $newState,
+                'updated_at' => now()
+            ]);
+
+            if ($newState === 'Hoàn thành' || ($newState === 'Đã giao' && strtolower($order->phuong_thuc_tt) === 'tiền mặt')) {
+                DB::table('thanh_toan')->where('ma_donhang', $id)->update([
+                    'trangthai' => 'Đã thanh toán',
+                    'updated_at' => now()
+                ]);
+            }
+
+            ThongBao::create([
+                'loai_thong_bao' => 'ORDER',
+                'tieu_de' => 'Cập nhật đơn hàng',
+                'noi_dung' => 'Đơn hàng #' . $id . ' vừa được chuyển sang trạng thái: ' . $request->trang_thai_dh,
+                'link' => '/admin/don-hang/' . $id
+            ]);
+
+            ThongBaoKhachHang::create([
+                'id_nguoidung' => $order->ma_nguoidung,
+                'loai_thong_bao' => 'don_hang',
+                'tieu_de' => 'Cập nhật đơn hàng',
+                'noi_dung' => 'Đơn hàng #' . $id . ' của bạn đã được cập nhật trạng thái thành: ' . $request->trang_thai_dh,
+                'link' => '/tai-khoan/don-hang'
+            ]);
+
+            DB::commit();
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Đã cập nhật trạng thái đơn hàng thành: ' . $request->trang_thai_dh
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Có lỗi xảy ra: ' . $e->getMessage()
+            ], 500);
+        }
     }
     public function monitorOrders()
     {
@@ -505,7 +607,6 @@ class PurchaseController extends Controller
             'updated_at'    => now()
         ]);
 
-        // ── Hoàn lại tồn kho khi hủy đơn ──────────────────────────────────
         $chiTietDonHang = DB::table('chi_tiet_don_hang')
             ->where('ma_donhang', $id)
             ->get();
@@ -516,7 +617,6 @@ class PurchaseController extends Controller
                 ->where('ma_sanpham',  $item->ma_sanpham)
                 ->increment('soluongtonkho', $item->soluong);
         }
-        // ───────────────────────────────────────────────────────────────────
 
         ThongBao::create([
             'loai_thong_bao' => 'ORDER',
