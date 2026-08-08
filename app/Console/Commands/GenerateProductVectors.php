@@ -45,14 +45,14 @@ class GenerateProductVectors extends Command
         $bar = $this->output->createProgressBar($total);
         $bar->start();
 
-        foreach ($products as $product) {
-            $specs = $product->specifications;
-            if (is_string($specs)) {
-                $specs = json_decode($specs, true) ?? [];
-            }
-
-            try {
-                $response = Http::timeout(15)->post("{$pythonServiceUrl}/upsert", [
+        foreach ($products->chunk(50) as $chunk) {
+            $batchData = [];
+            foreach ($chunk as $product) {
+                $specs = $product->specifications;
+                if (is_string($specs)) {
+                    $specs = json_decode($specs, true) ?? [];
+                }
+                $batchData[] = [
                     'id'             => $product->id_sanpham,
                     'masp'           => $product->masp,
                     'tensp'          => $product->tensp,
@@ -60,20 +60,26 @@ class GenerateProductVectors extends Command
                     'motasanpham'    => $product->motasanpham ?? '',
                     'specifications' => $specs ?? [],
                     'ten_danhmuc'    => $product->danhMuc->ten_danhmuc ?? '',
+                ];
+            }
+
+            try {
+                $response = Http::timeout(60)->post("{$pythonServiceUrl}/upsert-batch", [
+                    'products' => $batchData
                 ]);
 
                 if ($response->successful()) {
-                    $success++;
+                    $success += $chunk->count();
                 } else {
-                    Log::error("qdrant:index — Lỗi index sản phẩm {$product->id_sanpham}: " . $response->body());
-                    $failed++;
+                    Log::error("qdrant:index — Lỗi index batch: " . $response->body());
+                    $failed += $chunk->count();
                 }
             } catch (\Exception $e) {
-                Log::error("qdrant:index — Exception sản phẩm {$product->id_sanpham}: " . $e->getMessage());
-                $failed++;
+                Log::error("qdrant:index — Exception batch: " . $e->getMessage());
+                $failed += $chunk->count();
             }
 
-            $bar->advance();
+            $bar->advance($chunk->count());
         }
 
         $bar->finish();
