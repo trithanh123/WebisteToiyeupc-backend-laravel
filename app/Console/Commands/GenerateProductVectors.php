@@ -45,7 +45,7 @@ class GenerateProductVectors extends Command
         $bar = $this->output->createProgressBar($total);
         $bar->start();
 
-        foreach ($products->chunk(50) as $chunk) {
+        foreach ($products->chunk(15) as $chunk) {
             $batchData = [];
             foreach ($chunk as $product) {
                 $specs = $product->specifications;
@@ -82,7 +82,7 @@ class GenerateProductVectors extends Command
             }
 
             $bar->advance($chunk->count());
-            sleep(3); // Wait 3 seconds to avoid Gemini API Rate Limit (15 requests/minute)
+            sleep(10); // Wait 10 seconds to avoid Gemini API Rate Limit (100 products/minute)
         }
 
         $bar->finish();
