@@ -456,7 +456,7 @@ class ProductController extends Controller
             return response()->json(['message' => 'Vui lòng nhập câu hỏi build máy.'], 400);
         }
         
-        $pythonServiceUrl = env('PYTHON_SERVICE_URL', 'http://localhost:8001');
+        $pythonServiceUrl = config('services.python.search_url');
         
         try {
             $response = Http::timeout(60)->post("{$pythonServiceUrl}/ai-build-pc", [
