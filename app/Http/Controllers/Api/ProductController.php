@@ -470,19 +470,30 @@ class ProductController extends Controller
                 if (isset($data['build']) && is_array($data['build'])) {
                     $build = [];
                     foreach ($data['build'] as $item) {
-                        $masp = $item['masp'] ?? null;
-                        $product = null;
+                        $masp      = $item['masp']       ?? null;
+                        $qdrantId  = $item['id_sanpham'] ?? null;
+                        $product   = null;
+
+                        // 1️⃣ Tìm theo masp (product code)
                         if ($masp) {
                             $product = san_pham::with(['danhMuc', 'tonKho' => function ($q) {
                                 $q->where('ma_chinhanh', request()->header('Branch-Id') ?? 1);
                             }])->where('masp', $masp)->first();
                         }
-                        
+
+                        // 2️⃣ Fallback: tìm theo id_sanpham từ Qdrant
+                        if (!$product && $qdrantId) {
+                            $product = san_pham::with(['danhMuc', 'tonKho' => function ($q) {
+                                $q->where('ma_chinhanh', request()->header('Branch-Id') ?? 1);
+                            }])->find($qdrantId);
+                        }
+
+                        // 3️⃣ Chỉ thêm vào build nếu sản phẩm tồn tại trong MySQL
+                        //    (bỏ qua sản phẩm Qdrant cũ đã bị xóa khỏi DB)
                         if ($product) {
                             $build[] = $product;
-                        } else {
-                            $build[] = $item;
                         }
+                        // else: skip – tránh lỗi 404 khi user click vào sản phẩm không tồn tại
                     }
                     $data['build'] = $build;
                 }
