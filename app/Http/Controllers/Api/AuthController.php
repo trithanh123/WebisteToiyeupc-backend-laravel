@@ -71,9 +71,11 @@ class AuthController extends Controller
             $token = $user->createToken('auth_token')->plainTextToken;
             $exchangeCode = Str::random(40);
             Cache::put('oauth_code_' . $exchangeCode, $token, now()->addSeconds(60));
-            return redirect('http://localhost:5173/oauth/callback?code=' . $exchangeCode);
+            $frontendUrl = env('FRONTEND_URL', 'http://localhost:5173');
+            return redirect($frontendUrl . '/oauth/callback?code=' . $exchangeCode);
         } catch (\Exception $e) {
-            return redirect('http://localhost:5173/oauth/callback?error=login_failed');
+            $frontendUrl = env('FRONTEND_URL', 'http://localhost:5173');
+            return redirect($frontendUrl . '/oauth/callback?error=login_failed');
         }
     }
     public function exchangeCode(Request $request)
