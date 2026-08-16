@@ -50,12 +50,12 @@ class AuthController extends Controller
    
     public function redirectToProvider($provider)
     {
-        return Socialite::driver($provider)->stateless()->redirect();
+        return Socialite::driver($provider)->withPkce()->redirect();
     }
     public function handleProviderCallback($provider)
     {
         try {
-            $socialUser = Socialite::driver($provider)->stateless()->user();
+            $socialUser = Socialite::driver($provider)->withPkce()->user();
             $user = Nguoi_dung::updateOrCreate(
                 ['email' => $socialUser->getEmail()],
                 [
