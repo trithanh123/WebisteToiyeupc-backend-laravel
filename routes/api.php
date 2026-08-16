@@ -50,8 +50,6 @@ Route::prefix('wishlist')->controller(WishlistController::class)->middleware('au
 
 Route::prefix('')->controller(AuthController::class)->name('auth.')->group(function () {
     Route::post('/login','login')->name('login')->middleware('throttle:login');
-    Route::get('/auth/{provider}/redirect', 'redirectToProvider')->name('provider.redirect');
-    Route::get('/auth/{provider}/callback', 'handleProviderCallback')->name('provider.callback');
     Route::post('/auth/exchange-code', 'exchangeCode')->name('exchange-code')->middleware('throttle:login');
     Route::post('/register/send-otp','sendRegisterOTP');
     Route::post('/register/verify-otp','verifyRegisterOTP') ;
