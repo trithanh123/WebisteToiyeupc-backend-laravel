@@ -113,6 +113,7 @@ Route::middleware('auth:sanctum')->prefix('admin')->name('admin.')->group(functi
         Route::post('/','store')->name('store');
         Route::post('/upload-image', 'uploadImage')->name('upload-image');
         Route::put('/{id}','update')->where('id', '[0-9]+')->name('update');
+        Route::patch('/{id}/toggle','toggleStatus')->where('id', '[0-9]+')->name('toggle');
         Route::delete('/{id}','destroy')->where('id', '[0-9]+')->name('destroy');
         Route::get('/{id}/check-stock', 'checkStock')->where('id', '[0-9]+')->name('check-stock');
     });

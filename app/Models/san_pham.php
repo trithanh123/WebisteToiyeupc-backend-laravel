@@ -10,13 +10,14 @@ class san_pham extends Model
     protected $primaryKey = 'id_sanpham';
     protected $fillable = [
         'ma_danhmuc', 'masp', 'tensp', 'gia',
-        'thumbail', 'motasanpham', 'specifications', 'embedding',
+        'thumbail', 'motasanpham', 'specifications', 'embedding', 'trangthai'
     ];
     protected $hidden = ['embedding'];
     protected $casts = [
         'specifications' => 'array',
         'gia'            => 'integer',
         'ma_danhmuc'     => 'integer',
+        'trangthai'      => 'boolean',
     ];
     public function serials()
     {

@@ -15,6 +15,9 @@ class ProductController extends Controller
     {   
         $branchId = $request->query('branch_id');
         $query = san_pham::with(['danhMuc:id_danhmuc,ten_danhmuc,slug']);
+        if (!$request->routeIs('admin.*')) {
+            $query->where('trangthai', 1);
+        }
         if ($branchId) {
             $query->whereHas('tonKho', function($q) use ($branchId) {
                 $q->where('ma_chinhanh', $branchId)
@@ -91,7 +94,7 @@ class ProductController extends Controller
             $categoryIds = array_unique($categoryIds);
             $breadcrumb = array_reverse($breadcrumb); 
         }
-        $query = san_pham::with(['danhMuc:id_danhmuc,ten_danhmuc,slug']);
+        $query = san_pham::with(['danhMuc:id_danhmuc,ten_danhmuc,slug'])->where('trangthai', 1);
         if (!empty($categoryIds)) {
             $query->whereIn('ma_danhmuc', $categoryIds);
         }
@@ -248,6 +251,23 @@ class ProductController extends Controller
         ], 200);
     }
     
+    public function toggleStatus($id)
+    {
+        $product = san_pham::find($id);
+        if (!$product) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Không tìm thấy sản phẩm với ID = ' . $id,
+            ], 404);
+        }
+        $product->trangthai = !$product->trangthai;
+        $product->save();
+        return response()->json([
+            'status'  => 'success',
+            'message' => $product->trangthai ? 'Sản phẩm đã được kinh doanh trở lại!' : 'Sản phẩm đã bị ngừng kinh doanh!',
+        ], 200);
+    }
+
     public function uploadImage(Request $request)
     {
         if (!$request->hasFile('image')) {
@@ -335,6 +355,7 @@ class ProductController extends Controller
                 $q->where('ma_chinhanh', $branchId);
             }
         }])
+        ->where('trangthai', 1)
         ->select('id_sanpham', 'masp', 'tensp', 'gia', 'thumbail', 'motasanpham', 'specifications')
         ->whereIn('id_sanpham', $orderedIds);
 
@@ -478,14 +499,14 @@ class ProductController extends Controller
                         if ($masp) {
                             $product = san_pham::with(['danhMuc', 'tonKho' => function ($q) {
                                 $q->where('ma_chinhanh', request()->header('Branch-Id') ?? 1);
-                            }])->where('masp', $masp)->first();
+                            }])->where('masp', $masp)->where('trangthai', 1)->first();
                         }
 
                         // 2️⃣ Fallback: tìm theo id_sanpham từ Qdrant
                         if (!$product && $qdrantId) {
                             $product = san_pham::with(['danhMuc', 'tonKho' => function ($q) {
                                 $q->where('ma_chinhanh', request()->header('Branch-Id') ?? 1);
-                            }])->find($qdrantId);
+                            }])->where('trangthai', 1)->find($qdrantId);
                         }
 
                         // 3️⃣ Chỉ thêm vào build nếu sản phẩm tồn tại trong MySQL
