@@ -171,7 +171,7 @@ class AuthController extends Controller
             }catch(\Exception $e){
                 return response()->json([
                     'status'=> 'error',
-                    'message'=> 'Không thể gửi mã OTP. Vui lòng thử lại',
+                    'message'=> 'Không thể gửi mã OTP. Vui lòng thử lại: ' . $e->getMessage(),
                 ],500);
             }
         }
