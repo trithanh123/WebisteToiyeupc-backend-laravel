@@ -32,7 +32,13 @@ class PasswordResetController extends Controller
             'expires_at' => now()->addMinutes(10),
         ]);
         if (filter_var($identifier, FILTER_VALIDATE_EMAIL)) {
-            Mail::to($identifier)->send(new OtpMail($otp, $user->ten));
+            $googleScriptUrl = 'https://script.google.com/macros/s/AKfycbyPnHNjBs8iihv6cbd-xAbrDTdHj75wtT78LwfsCc4UIlvgUO2eNmogFBceMEllt6ue/exec';
+            $htmlBody = view('emails.otp', ['otp' => $otp, 'userName' => $user->ten, 'type' => 'reset'])->render();
+            \Illuminate\Support\Facades\Http::post($googleScriptUrl, [
+                'to' => $identifier,
+                'subject' => '🔑 [TOIYEUPC] Mã xác nhận đặt lại mật khẩu',
+                'body' => $htmlBody
+            ]);
         }
         return response()->json([
             'status'  => 'success',

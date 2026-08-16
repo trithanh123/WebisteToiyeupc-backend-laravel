@@ -167,7 +167,13 @@ class AuthController extends Controller
         'data'=>$request->all()],now()->addMinutes(5));
         if($request->email){
             try{
-                Mail::to($request->email)->send(new OtpMail($otp,$request->ten,'register'));
+                $googleScriptUrl = 'https://script.google.com/macros/s/AKfycbyPnHNjBs8iihv6cbd-xAbrDTdHj75wtT78LwfsCc4UIlvgUO2eNmogFBceMEllt6ue/exec';
+                $htmlBody = view('emails.otp', ['otp' => $otp, 'userName' => $request->ten, 'type' => 'register'])->render();
+                \Illuminate\Support\Facades\Http::post($googleScriptUrl, [
+                    'to' => $request->email,
+                    'subject' => '🚀 [TOIYEUPC] Mã xác nhận đăng ký tài khoản',
+                    'body' => $htmlBody
+                ]);
             }catch(\Exception $e){
                 return response()->json([
                     'status'=> 'error',
