@@ -8,7 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use App\Http\Requests\sendOtpRequest;
-use App\Http\Requests\verifyOtpRequest;
+use App\Http\Requests\VerifyOtpRequest;
 use App\Http\Requests\resetPasswordRequest;
 class PasswordResetController extends Controller
 {
@@ -46,7 +46,7 @@ class PasswordResetController extends Controller
             'type'    => filter_var($identifier, FILTER_VALIDATE_EMAIL) ? 'email' : 'phone',
         ]);
     }
-    public function verifyOtp(verifyOtpRequest $request)
+    public function verifyOtp(VerifyOtpRequest $request)
     {   
         $identifier = trim($request->identifier);
         $otpRecord = OtpToken::where('identifier', $identifier)
