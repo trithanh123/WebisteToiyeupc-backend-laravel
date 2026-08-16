@@ -51,7 +51,7 @@ class AuthController extends Controller
     public function redirectToProvider($provider)
     {
         try {
-            return Socialite::driver($provider)->withPkce()->redirect();
+            return Socialite::driver($provider)->stateless()->redirect();
         } catch (\Exception $e) {
             return response()->json([
                 'error' => $e->getMessage(),
@@ -63,7 +63,7 @@ class AuthController extends Controller
     public function handleProviderCallback($provider)
     {
         try {
-            $socialUser = Socialite::driver($provider)->withPkce()->user();
+            $socialUser = Socialite::driver($provider)->stateless()->user();
             $user = Nguoi_dung::updateOrCreate(
                 ['email' => $socialUser->getEmail()],
                 [
