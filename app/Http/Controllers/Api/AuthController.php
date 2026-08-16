@@ -50,7 +50,15 @@ class AuthController extends Controller
    
     public function redirectToProvider($provider)
     {
-        return Socialite::driver($provider)->withPkce()->redirect();
+        try {
+            return Socialite::driver($provider)->withPkce()->redirect();
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine()
+            ], 500);
+        }
     }
     public function handleProviderCallback($provider)
     {
