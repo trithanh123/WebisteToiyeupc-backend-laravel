@@ -403,6 +403,26 @@ class ProductController extends Controller
             ->take($topK)
             ->values();
 
+        // Rerank theo GPU/VGA nếu user đề cập model cụ thể (vd: "RTX 3060")
+        // → Sản phẩm match GPU lên đầu, không match xuống cuối (không loại bỏ)
+        $gpuKeyword = $filters['gpu_keyword'] ?? null;
+        if ($gpuKeyword) {
+            $gpuLower = strtolower($gpuKeyword);
+            $matched   = $products->filter(function ($p) use ($gpuLower) {
+                $specs = $p['specifications'] ?? [];
+                $gpu   = strtolower($specs['Gpu'] ?? $specs['gpu'] ?? $specs['GPU'] ?? '');
+                return str_contains($gpu, $gpuLower)
+                    || str_contains(strtolower($p['tensp'] ?? ''), $gpuLower);
+            });
+            $unmatched = $products->reject(function ($p) use ($gpuLower) {
+                $specs = $p['specifications'] ?? [];
+                $gpu   = strtolower($specs['Gpu'] ?? $specs['gpu'] ?? $specs['GPU'] ?? '');
+                return str_contains($gpu, $gpuLower)
+                    || str_contains(strtolower($p['tensp'] ?? ''), $gpuLower);
+            });
+            $products = $matched->values()->merge($unmatched->values());
+        }
+
 
         return response()->json([
             'query'    => $queryText,
