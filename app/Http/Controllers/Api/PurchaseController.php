@@ -156,7 +156,7 @@ class PurchaseController extends Controller
                    ThongBao::create([
                         'loai_thong_bao' => 'VOUCHER',
                         'tieu_de' => 'Voucher được sử dụng',
-                        'noi_dung' => "Voucher {$voucher->ma_khuyenmai} vừa được dùng cho đơn hàng #{$donHangId}. Đã dùng: {$voucher->dasudung}/{$voucher->soluongma}",
+                        'noi_dung' => "Voucher {$voucher->ma_voucher} vừa được dùng cho đơn hàng #{$donHangId}. Đã dùng: {$voucher->dasudung}/{$voucher->soluongma}",
                         'link' => '/admin/voucher' 
                     ]);
                 }
@@ -219,7 +219,7 @@ class PurchaseController extends Controller
                         ThongBao::create([
                             'loai_thong_bao' => 'VOUCHER',
                             'tieu_de' => 'Voucher được sử dụng',
-                            'noi_dung' => "Voucher {$voucher->ma_khuyenmai} vừa được dùng cho đơn hàng #{$orderId} (VNPay). Đã dùng: {$voucher->dasudung}/{$voucher->soluongma}",
+                            'noi_dung' => "Voucher {$voucher->ma_voucher} vừa được dùng cho đơn hàng #{$orderId} (VNPay). Đã dùng: {$voucher->dasudung}/{$voucher->soluongma}",
                             'link' => '/admin/voucher'
                         ]);
                     }
@@ -491,7 +491,7 @@ class PurchaseController extends Controller
         }
         $order = DB::table('don_hang')
             ->join('nguoi_dung', 'don_hang.ma_nguoidung', '=', 'nguoi_dung.id_nguoidung')
-            ->join('diachi_nguoidung', 'don_hang.ma_diachinguoidung', '=', 'diachi_nguoidung.id_diachinguoidung')
+            ->leftJoin('diachi_nguoidung', 'don_hang.ma_diachinguoidung', '=', 'diachi_nguoidung.id_diachinguoidung')
             ->select('don_hang.*', 'nguoi_dung.ten as tenkhach', 'nguoi_dung.sdt', 'diachi_nguoidung.diachi_chitiet')
             ->where('id_donhang', $id)
             ->first();

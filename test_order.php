@@ -19,7 +19,7 @@ try {
             'diachi_nguoidung.sdt_nguoinhan', 
             'diachi_nguoidung.diachi_chitiet',
             'chi_nhanh.ten_chinhanh',
-            'khuyen_mai.ma_khuyenmai as magiamgia'
+            'khuyen_mai.ma_voucher as magiamgia'
         )
         ->where('don_hang.id_donhang', $id)
         ->first();
