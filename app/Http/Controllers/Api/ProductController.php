@@ -240,7 +240,8 @@ class ProductController extends Controller
         $product->delete();
         try {
             $pythonServiceUrl = config('services.python.search_url');
-            Http::timeout(5)->delete("{$pythonServiceUrl}/delete/{$productId}");
+            // Tăng timeout lên 30s để tránh embedding bị stale khi Python service cold-start (Render)
+            Http::timeout(30)->delete("{$pythonServiceUrl}/delete/{$productId}");
         } catch (\Exception $e) {
             Log::warning('[Embedding] Không thể xóa embedding sản phẩm id=' . $productId . ': ' . $e->getMessage());
         }
