@@ -443,6 +443,7 @@ class PurchaseController extends Controller
             ->join('nguoi_dung', 'don_hang.ma_nguoidung', '=', 'nguoi_dung.id_nguoidung')
             ->join('chi_nhanh', 'don_hang.ma_chinhanh', '=', 'chi_nhanh.id_chinhanh')
             ->leftJoin('thanh_toan', 'don_hang.id_donhang', '=', 'thanh_toan.ma_donhang')
+            ->leftJoin('diachi_nguoidung', 'don_hang.ma_diachinguoidung', '=', 'diachi_nguoidung.id_diachinguoidung')
             ->select(
                 'don_hang.id_donhang',
                 'don_hang.tongtien',
@@ -451,6 +452,7 @@ class PurchaseController extends Controller
                 'don_hang.thoigiandathang',
                 'nguoi_dung.ten as tenkhachhang',
                 'nguoi_dung.sdt',
+                'diachi_nguoidung.sdt_nguoinhan',
                 'chi_nhanh.ten_chinhanh',
                 'thanh_toan.trangthai as trangthaithanhtoan',
                 'thanh_toan.ma_giaodich'
