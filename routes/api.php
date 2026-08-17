@@ -27,6 +27,11 @@ use App\Http\Controllers\Api\StaffTransferController;
 Route::get('/user', function (Request $request) {
     return $request->user();
 })->middleware('auth:sanctum');
+
+Route::get('/fix-serials', function() {
+    \Illuminate\Support\Facades\Artisan::call('db:seed', ['--class' => 'SanPhamSerialSeeder']);
+    return response()->json(['message' => 'Đã chạy seeder tạo Serial thành công! Hãy tải lại trang web và thử giao hàng lại.']);
+});
 Route::get('/me', [AuthController::class, 'me'])->middleware('auth:sanctum');
 Route::put('/me', [AuthController::class, 'updateProfile'])->middleware('auth:sanctum');
 Route::get('/my-orders', [PurchaseController::class, 'myOrders'])->middleware('auth:sanctum');
