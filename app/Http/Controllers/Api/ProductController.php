@@ -557,4 +557,40 @@ class ProductController extends Controller
             ], 500);
         }
     }
+
+    public function builderComponents(Request $request)
+    {
+        $type = $request->query('type');
+        $socket = $request->query('socket');
+        $branchId = $request->query('branch_id');
+
+        if (!$type) {
+            return response()->json(['message' => 'Vui lòng cung cấp loại linh kiện (type)'], 400);
+        }
+
+        $query = san_pham::with(['danhMuc', 'tonKho' => function ($q) use ($branchId) {
+            if ($branchId) {
+                $q->where('ma_chinhanh', $branchId);
+            }
+        }])
+        ->where('trangthai', 1)
+        ->where('specifications->loai', $type);
+
+        if ($socket) {
+            $query->where('specifications->socket', $socket);
+        }
+
+        if ($branchId) {
+            $query->whereHas('tonKho', function($q) use ($branchId) {
+                $q->where('ma_chinhanh', $branchId)->where('soluongtonkho', '>', 0);
+            });
+        }
+
+        $products = $query->orderBy('id_sanpham', 'desc')->get();
+
+        return response()->json([
+            'status' => 'success',
+            'data' => $products
+        ]);
+    }
 }

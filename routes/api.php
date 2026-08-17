@@ -71,6 +71,7 @@ Route::prefix('products')->controller(ProductController::class)
 ->group(function () {
     Route::get('/','index')->name('index');
     Route::get('/by-category','byCategory')->name('by-category'); 
+    Route::get('/builder-components','builderComponents')->name('builder-components');
     Route::get('/{id}','show')->where('id', '[0-9]+')->name('show');
     Route::post('/ai-search','aiSearch')->name('ai-search');
     Route::post('/build-pc','buildPc')->name('build-pc');
