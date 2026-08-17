@@ -269,7 +269,7 @@ class PurchaseController extends Controller
     {
         $order = DB::table('don_hang')
             ->join('nguoi_dung', 'don_hang.ma_nguoidung', '=', 'nguoi_dung.id_nguoidung')
-            ->join('diachi_nguoidung', 'don_hang.ma_diachinguoidung', '=', 'diachi_nguoidung.id_diachinguoidung')
+            ->leftJoin('diachi_nguoidung', 'don_hang.ma_diachinguoidung', '=', 'diachi_nguoidung.id_diachinguoidung')
             ->join('chi_nhanh', 'don_hang.ma_chinhanh', '=', 'chi_nhanh.id_chinhanh')
             ->leftJoin('khuyen_mai', 'don_hang.ma_khuyenmai', '=', 'khuyen_mai.id_khuyenmai')
             ->select(
@@ -280,7 +280,7 @@ class PurchaseController extends Controller
                 'diachi_nguoidung.sdt_nguoinhan', 
                 'diachi_nguoidung.diachi_chitiet',
                 'chi_nhanh.ten_chinhanh',
-                'khuyen_mai.ma_khuyenmai as magiamgia'
+                'khuyen_mai.ma_voucher as magiamgia'
             )
             ->where('don_hang.id_donhang', $id)
             ->first();
