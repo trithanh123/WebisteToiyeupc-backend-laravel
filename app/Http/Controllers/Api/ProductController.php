@@ -574,7 +574,34 @@ class ProductController extends Controller
             }
         }])
         ->where('trangthai', 1)
-        ->where('specifications->loai', $type);
+        ->where(function($q) use ($type) {
+            // Map type to common Vietnamese terms
+            $vnTerms = '';
+            switch(strtolower($type)) {
+                case 'mainboard': $vnTerms = 'Bo mạch chủ'; break;
+                case 'cpu': $vnTerms = 'Vi xử lý'; break;
+                case 'vga': $vnTerms = 'Card màn hình'; break;
+                case 'psu': $vnTerms = 'Nguồn'; break;
+                case 'case': $vnTerms = 'Vỏ máy'; break;
+                case 'ram': $vnTerms = 'Bộ nhớ'; break;
+                case 'ssd': $vnTerms = 'Ổ cứng'; break;
+            }
+
+            $q->where('specifications->loai', $type)
+              ->orWhere('tensp', 'LIKE', "%{$type}%");
+              
+            if ($vnTerms) {
+                $q->orWhere('tensp', 'LIKE', "%{$vnTerms}%")
+                  ->orWhereHas('danhMuc', function($q2) use ($type, $vnTerms) {
+                      $q2->where('ten_danhmuc', 'LIKE', "%{$type}%")
+                         ->orWhere('ten_danhmuc', 'LIKE', "%{$vnTerms}%");
+                  });
+            } else {
+                $q->orWhereHas('danhMuc', function($q2) use ($type) {
+                    $q2->where('ten_danhmuc', 'LIKE', "%{$type}%");
+                });
+            }
+        });
 
         if ($socket) {
             $query->where('specifications->socket', $socket);
