@@ -588,19 +588,19 @@ class ProductController extends Controller
             }
 
             $q->where('specifications->loai', $type)
-              ->orWhere('tensp', 'LIKE', "%{$type}%");
-              
-            if ($vnTerms) {
-                $q->orWhere('tensp', 'LIKE', "%{$vnTerms}%")
-                  ->orWhereHas('danhMuc', function($q2) use ($type, $vnTerms) {
-                      $q2->where('ten_danhmuc', 'LIKE', "%{$type}%")
-                         ->orWhere('ten_danhmuc', 'LIKE', "%{$vnTerms}%");
-                  });
-            } else {
-                $q->orWhereHas('danhMuc', function($q2) use ($type) {
-                    $q2->where('ten_danhmuc', 'LIKE', "%{$type}%");
-                });
-            }
+              ->orWhere(function($subQ) use ($type, $vnTerms) {
+                  $subQ->where(function($q2) use ($type, $vnTerms) {
+                      $q2->where('tensp', 'ILIKE', "%{$type}%");
+                      if ($vnTerms) $q2->orWhere('tensp', 'ILIKE', "%{$vnTerms}%");
+                      
+                      $q2->orWhereHas('danhMuc', function($q3) use ($type, $vnTerms) {
+                          $q3->where('ten_danhmuc', 'ILIKE', "%{$type}%");
+                          if ($vnTerms) $q3->orWhere('ten_danhmuc', 'ILIKE', "%{$vnTerms}%");
+                      });
+                  })
+                  ->where('tensp', 'NOT ILIKE', '%Laptop%')
+                  ->where('tensp', 'NOT ILIKE', 'PC %');
+              });
         });
 
         if ($socket) {
