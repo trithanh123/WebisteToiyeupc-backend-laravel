@@ -224,15 +224,18 @@ class PurchaseController extends Controller
                         ]);
                     }
                 }
-                return redirect('http://localhost:5173/tai-khoan/don-hang?vnpay=success');
+                $frontendUrl = rtrim(env('FRONTEND_URL', 'http://localhost:5173'), '/');
+                return redirect($frontendUrl . '/tai-khoan/don-hang?vnpay=success');
             } else {
                 DB::table('thanh_toan')->where('ma_donhang', $orderId)->update([
                     'trangthai' => 'Thất bại'
                 ]);
-                return redirect('http://localhost:5173/tai-khoan/don-hang?vnpay=error&reason=failed');
+                $frontendUrl = rtrim(env('FRONTEND_URL', 'http://localhost:5173'), '/');
+                return redirect($frontendUrl . '/tai-khoan/don-hang?vnpay=error&reason=failed');
             }
         } else {
-            return redirect('http://localhost:5173/tai-khoan/don-hang?vnpay=error&reason=invalid_signature');
+            $frontendUrl = rtrim(env('FRONTEND_URL', 'http://localhost:5173'), '/');
+            return redirect($frontendUrl . '/tai-khoan/don-hang?vnpay=error&reason=invalid_signature');
         }
     }
     public function index(Request $request)
