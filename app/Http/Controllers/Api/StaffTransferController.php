@@ -140,8 +140,58 @@ class StaffTransferController extends Controller
             return response()->json(['status' => 'success', 'message' => 'Tạo phiếu điều chuyển thành công', 'data' => $phieu], 201);
         } catch (\Exception $e) {
             DB::rollBack();
-            return response()->json(['status' => 'error', 'message' => 'Lỗi khi tạo phiếu: ' . $e->getMessage()], 500);
+            return response()->json(['status' => 'error', 'message' => 'Lỗi hệ thống: ' . $e->getMessage()], 500);
         }
+    }
+
+    public function cancel(Request $request, $id)
+    {
+        $chiNhanh = $this->getStaffBranch($request);
+        $phieu = phieu_dieu_chuyen::find($id);
+
+        if (!$phieu || $phieu->trang_thai !== 'Chờ duyệt') {
+            return response()->json(['status' => 'error', 'message' => 'Phiếu không hợp lệ hoặc đã được xử lý'], 400);
+        }
+
+        if (!$chiNhanh || $phieu->ma_kho_nhap != $chiNhanh->id_chinhanh) {
+            return response()->json(['status' => 'error', 'message' => 'Chỉ chi nhánh nhận (người tạo) mới có quyền hủy phiếu này'], 403);
+        }
+
+        $phieu->update([
+            'trang_thai' => 'Đã hủy',
+        ]);
+
+        return response()->json(['status' => 'success', 'message' => 'Đã hủy phiếu yêu cầu điều chuyển']);
+    }
+
+    public function reject(Request $request, $id)
+    {
+        $chiNhanh = $this->getStaffBranch($request);
+        $phieu = phieu_dieu_chuyen::find($id);
+
+        if (!$phieu || $phieu->trang_thai !== 'Chờ duyệt') {
+            return response()->json(['status' => 'error', 'message' => 'Phiếu không hợp lệ hoặc đã được xử lý'], 400);
+        }
+
+        if (!$chiNhanh || $phieu->ma_kho_xuat != $chiNhanh->id_chinhanh) {
+            return response()->json(['status' => 'error', 'message' => 'Chỉ kho xuất (nguồn) mới có quyền từ chối phiếu này'], 403);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'ly_do' => 'required|string|max:500',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['status' => 'error', 'message' => 'Vui lòng nhập lý do từ chối (tối đa 500 ký tự)'], 400);
+        }
+
+        $phieu->update([
+            'trang_thai' => 'Từ chối',
+            'ly_do' => $request->ly_do,
+            'nguoi_duyet' => $request->user()->id_nguoidung
+        ]);
+
+        return response()->json(['status' => 'success', 'message' => 'Đã từ chối phiếu yêu cầu điều chuyển']);
     }
 
     public function show(Request $request, $id)

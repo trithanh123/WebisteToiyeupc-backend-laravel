@@ -228,6 +228,8 @@ Route::prefix('staff/transfers')->controller(StaffTransferController::class)->na
     Route::get('/{id}', 'show')->name('show');
     Route::put('/{id}/approve', 'approve')->name('approve');
     Route::put('/{id}/complete', 'complete')->name('complete');
+    Route::put('/{id}/cancel', 'cancel')->name('cancel');
+    Route::put('/{id}/reject', 'reject')->name('reject');
 });
 
 Route::prefix('staff/warranty')->controller(SupportWarrantyController::class)->name('staff.warranty.')->middleware(['auth:sanctum', CheckstaffRole::class])->group(function () {
