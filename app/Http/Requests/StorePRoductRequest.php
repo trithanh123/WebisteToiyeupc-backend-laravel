@@ -29,6 +29,7 @@ class StorePRoductRequest extends FormRequest
             'ma_danhmuc.exists'   => 'Danh mục không tồn tại.',
             'masp.required'       => 'Mã sản phẩm không được để trống.',
             'masp.unique'         => 'Mã sản phẩm này đã tồn tại.',
+            'masp.regex'          => 'Mã sản phẩm không được chứa ký tự đặc biệt.',
             'tensp.required'      => 'Tên sản phẩm không được để trống.',
             'gia.required'        => 'Giá sản phẩm không được để trống.',
             'gia.min'             => 'Giá sản phẩm phải lớn hơn 0.',

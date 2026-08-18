@@ -403,24 +403,36 @@ class ProductController extends Controller
             ->take($topK)
             ->values();
 
-        // Rerank theo GPU/VGA nếu user đề cập model cụ thể (vd: "RTX 3060")
-        // → Sản phẩm match GPU lên đầu, không match xuống cuối (không loại bỏ)
-        $gpuKeyword = $filters['gpu_keyword'] ?? null;
-        if ($gpuKeyword) {
-            $gpuLower = strtolower($gpuKeyword);
-            $matched   = $products->filter(function ($p) use ($gpuLower) {
-                $specs = $p['specifications'] ?? [];
-                $gpu   = strtolower($specs['Gpu'] ?? $specs['gpu'] ?? $specs['GPU'] ?? '');
-                return str_contains($gpu, $gpuLower)
-                    || str_contains(strtolower($p['tensp'] ?? ''), $gpuLower);
-            });
-            $unmatched = $products->reject(function ($p) use ($gpuLower) {
-                $specs = $p['specifications'] ?? [];
-                $gpu   = strtolower($specs['Gpu'] ?? $specs['gpu'] ?? $specs['GPU'] ?? '');
-                return str_contains($gpu, $gpuLower)
-                    || str_contains(strtolower($p['tensp'] ?? ''), $gpuLower);
-            });
-            $products = $matched->values()->merge($unmatched->values());
+        // Rerank theo các linh kiện (GPU, CPU, RAM, Mainboard, PSU)
+        $rerankFields = [
+            ['keyword' => 'gpu_keyword',  'spec_keys' => ['Gpu', 'gpu', 'GPU', 'Card đồ họa']],
+            ['keyword' => 'cpu_keyword',  'spec_keys' => ['Cpu', 'cpu', 'CPU']],
+            ['keyword' => 'ram_keyword',  'spec_keys' => ['Ram', 'ram', 'RAM', 'Bộ nhớ']],
+            ['keyword' => 'main_keyword', 'spec_keys' => ['Mainboard', 'mainboard', 'Main', 'main', 'Bo mạch chủ']],
+            ['keyword' => 'psu_keyword',  'spec_keys' => ['Psu', 'psu', 'PSU', 'Nguồn', 'nguồn']],
+        ];
+
+        foreach ($rerankFields as $field) {
+            $keyword = $filters[$field['keyword']] ?? null;
+            if ($keyword) {
+                $lowerKeyword = strtolower($keyword);
+                
+                $checkMatch = function ($p) use ($lowerKeyword, $field) {
+                    $specs = $p['specifications'] ?? [];
+                    $specValue = '';
+                    foreach ($field['spec_keys'] as $key) {
+                        if (isset($specs[$key])) {
+                            $specValue .= ' ' . $specs[$key];
+                        }
+                    }
+                    return str_contains(strtolower($specValue), $lowerKeyword)
+                        || str_contains(strtolower($p['tensp'] ?? ''), $lowerKeyword);
+                };
+
+                $matched   = $products->filter($checkMatch);
+                $unmatched = $products->reject($checkMatch);
+                $products  = $matched->values()->merge($unmatched->values());
+            }
         }
 
 
@@ -507,8 +519,6 @@ class ProductController extends Controller
             
             if ($response->successful()) {
                 $data = $response->json();
-                
-                // Get fresh prices and stock from MySQL for each component.
                 if (isset($data['build']) && is_array($data['build'])) {
                     $build = [];
                     foreach ($data['build'] as $item) {
@@ -516,39 +526,28 @@ class ProductController extends Controller
                         $qdrantId  = $item['id_sanpham'] ?? null;
                         $product   = null;
 
-                        // 1️⃣ Tìm theo masp (product code)
                         if ($masp) {
                             $product = san_pham::with(['danhMuc', 'tonKho' => function ($q) {
                                 $q->where('ma_chinhanh', request()->header('Branch-Id') ?? 1);
                             }])->where('masp', $masp)->where('trangthai', 1)->first();
                         }
-
-                        // 2️⃣ Fallback: tìm theo id_sanpham từ Qdrant
                         if (!$product && $qdrantId) {
                             $product = san_pham::with(['danhMuc', 'tonKho' => function ($q) {
                                 $q->where('ma_chinhanh', request()->header('Branch-Id') ?? 1);
                             }])->where('trangthai', 1)->find($qdrantId);
                         }
-
-                        // 3️⃣ Chỉ thêm vào build nếu sản phẩm tồn tại trong MySQL
-                        //    (bỏ qua sản phẩm Qdrant cũ đã bị xóa khỏi DB)
                         if ($product) {
                             $build[] = $product;
                         }
-                        // else: skip – tránh lỗi 404 khi user click vào sản phẩm không tồn tại
                     }
                     $data['build'] = $build;
                 }
                 
                 return response()->json($data);
             }
-            
-            // If python service returns 404, it means no build found.
             if ($response->status() == 404) {
                 return response()->json(['message' => 'Không tìm thấy cấu hình phù hợp với ngân sách và yêu cầu.'], 404);
             }
-            
-            // Otherwise, it's a server error (e.g. 502 Bad Gateway from Render cold start)
             return response()->json(['message' => 'AI Service đang khởi động hoặc quá tải, vui lòng thử lại sau vài giây! (Mã lỗi: ' . $response->status() . ')'], 500);
             
         } catch (\Exception $e) {
@@ -575,7 +574,6 @@ class ProductController extends Controller
         }])
         ->where('trangthai', 1)
         ->where(function($q) use ($type) {
-            // Map type to common Vietnamese terms
             $vnTerms = '';
             switch(strtolower($type)) {
                 case 'mainboard': $vnTerms = 'Bo mạch chủ'; break;
