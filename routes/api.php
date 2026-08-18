@@ -156,6 +156,7 @@ Route::middleware('auth:sanctum')->prefix('admin')->name('admin.')->group(functi
         Route::post('/store','store')->name('store');
         Route::get('/{id}/serials','getSerials')->name('serials');
         Route::get('/by-branch/{branchId}','getByBranch')->name('by-branch');
+        Route::delete('/{id}', 'destroy')->name('destroy');
     });
     
     Route::prefix('transfers')->controller(AdminTransferController::class)->name('transfers.')->middleware([CheckadminRole::class])->group(function () {
