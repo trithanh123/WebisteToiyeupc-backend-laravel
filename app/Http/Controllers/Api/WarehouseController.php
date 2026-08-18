@@ -12,7 +12,7 @@ class WarehouseController extends Controller
     public function store(StoreWarehouseRequest $request)
     {
         $validated = $request->validated();
-        DB::beginTransaction(); // Chỉ gọi 1 lần (đã bỏ dòng kép)
+        DB::beginTransaction(); 
         try {
             $phieuNhapId = time();
             foreach ($validated['san_phams'] as $item) {
@@ -82,10 +82,7 @@ class WarehouseController extends Controller
         ]);
     }
 
-    /**
-     * Chỉ cho phép sửa định mức cảnh báo (soluongkhothap).
-     * Không cho sửa số tồn kho thủ công vì sẽ gây mất đồng bộ với serial thực tế.
-     */
+    
     public function update(UpdateWarehouseRequest $request, $id)
     {
         $tonKho = ton_kho_cuc_bo::find($id);
@@ -93,9 +90,9 @@ class WarehouseController extends Controller
             return response()->json(['status' => 'error', 'message' => 'Không tìm thấy lô hàng'], 404);
         }
 
-        $validated = $request->validated(); // Đã fix: khai báo $validated đúng chỗ
+        $validated = $request->validated(); 
 
-        // Chỉ cho phép cập nhật định mức cảnh báo
+
         if (isset($validated['soluongkhothap'])) {
             $tonKho->soluongkhothap = $validated['soluongkhothap'];
         }
@@ -108,9 +105,6 @@ class WarehouseController extends Controller
         ]);
     }
 
-    /**
-     * Xóa an toàn: chỉ cho xóa khi không còn serial nào đang trong kho.
-     */
     public function destroy($id)
     {
         try {
@@ -119,15 +113,13 @@ class WarehouseController extends Controller
                 return response()->json(['status' => 'error', 'message' => 'Không tìm thấy mục tồn kho'], 404);
             }
 
-            // Chỉ cho xóa khi không còn serial trong kho
-            $serialCount = sanpham_serials::where('ma_tonkho', $id)
-                ->where('tinhtrang', 'nằm trong kho')
-                ->count();
+           
+            $serialCount = sanpham_serials::where('ma_tonkho', $id)->count();
 
             if ($serialCount > 0) {
                 return response()->json([
                     'status' => 'error',
-                    'message' => "Không thể xóa! Kho này vẫn còn {$serialCount} serial đang tồn. Hãy xuất hết hàng trước."
+                    'message' => "Không được xóa vì còn chứa lịch sử của {$serialCount} Serial trong kho!"
                 ], 400);
             }
 
