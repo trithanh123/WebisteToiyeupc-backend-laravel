@@ -39,6 +39,15 @@ Route::get('/debug-env', function () {
     ]);
 });
 
+Route::get('/debug-db', function () {
+    try {
+        \Illuminate\Support\Facades\DB::connection()->getPdo();
+        return "TIN VUI: KẾT NỐI DB THÀNH CÔNG RỒI!";
+    } catch (\Exception $e) {
+        return "LỖI DB: " . $e->getMessage();
+    }
+});
+
 Route::get('/me', [AuthController::class, 'me'])->middleware('auth:sanctum');
 Route::put('/me', [AuthController::class, 'updateProfile'])->middleware('auth:sanctum');
 Route::get('/my-orders', [PurchaseController::class, 'myOrders'])->middleware('auth:sanctum');
