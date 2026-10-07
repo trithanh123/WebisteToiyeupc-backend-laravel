@@ -1,4 +1,4 @@
-FROM php:8.2-cli
+FROM php:8.4-cli
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
@@ -12,10 +12,9 @@ RUN apt-get update && apt-get install -y \
     ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
-# (Không cần hack OpenSSL nữa vì PHP 8.2 / Debian Bullseye xài OpenSSL 1.1.1 chuẩn tương thích)
+# Tắt GSSAPI (Kerberos) encryption mode để tránh lỗi rớt SSL handshake trên Render
+ENV PGGSSENCMODE=disable
 
-
-# Install PHP extensions
 RUN docker-php-ext-install \
     pdo \
     pdo_pgsql \
