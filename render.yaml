@@ -29,6 +29,8 @@ services:
         sync: false  # Copy từ Render DB
       - key: DB_PASSWORD
         sync: false  # Copy từ Render DB
+      - key: DB_SSLMODE
+        value: require
 
       # Session & Cache
       - key: SESSION_DRIVER
