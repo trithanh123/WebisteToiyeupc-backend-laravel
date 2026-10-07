@@ -28,6 +28,17 @@ Route::get('/user', function (Request $request) {
     return $request->user();
 })->middleware('auth:sanctum');
 
+Route::get('/debug-env', function () {
+    return response()->json([
+        'APP_KEY_STATUS' => env('APP_KEY') ? 'ĐÃ CÓ (OK)' : 'THIẾU (LỖI NGHIÊM TRỌNG CAUSE 500)',
+        'APP_DEBUG_STATUS' => env('APP_DEBUG', false),
+        'DB_HOST_STATUS' => env('DB_HOST') ? 'ĐÃ CÓ' : 'THIẾU',
+        'DB_DATABASE_STATUS' => env('DB_DATABASE') ? 'ĐÃ CÓ' : 'THIẾU',
+        'DB_USERNAME_STATUS' => env('DB_USERNAME') ? 'ĐÃ CÓ' : 'THIẾU',
+        'DB_PASSWORD_STATUS' => env('DB_PASSWORD') ? 'ĐÃ CÓ' : 'THIẾU',
+    ]);
+});
+
 Route::get('/me', [AuthController::class, 'me'])->middleware('auth:sanctum');
 Route::put('/me', [AuthController::class, 'updateProfile'])->middleware('auth:sanctum');
 Route::get('/my-orders', [PurchaseController::class, 'myOrders'])->middleware('auth:sanctum');
