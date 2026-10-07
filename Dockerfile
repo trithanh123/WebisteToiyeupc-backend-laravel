@@ -9,6 +9,7 @@ RUN apt-get update && apt-get install -y \
     git \
     curl \
     libonig-dev \
+    ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
 # (Không cần hack OpenSSL nữa vì PHP 8.2 / Debian Bullseye xài OpenSSL 1.1.1 chuẩn tương thích)
