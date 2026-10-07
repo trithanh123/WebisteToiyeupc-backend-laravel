@@ -1,6 +1,6 @@
-FROM php:8.4-cli
+FROM php:8.2-cli
 
-# Install system dependencies (Debian-based để fix SSL/TLS với Render PostgreSQL)
+# Install system dependencies
 RUN apt-get update && apt-get install -y \
     libpq-dev \
     libzip-dev \
@@ -9,16 +9,10 @@ RUN apt-get update && apt-get install -y \
     git \
     curl \
     libonig-dev \
-    openssl \
-    ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
-# Fix SSL compatibility: dùng printf để tạo newline thật (echo \n không work trong sh)
-# Force TLS 1.2 + SECLEVEL=1 để tương thích với Render PostgreSQL SSL proxy
-RUN printf 'openssl_conf = openssl_init\n\n[openssl_init]\nssl_conf = ssl_sect\n\n[ssl_sect]\nsystem_default = system_default_sect\n\n[system_default_sect]\nMinProtocol = TLSv1.2\nMaxProtocol = TLSv1.2\nCipherString = DEFAULT:@SECLEVEL=1\n' > /etc/ssl/openssl-custom.cnf
-ENV OPENSSL_CONF=/etc/ssl/openssl-custom.cnf
-ENV PGSSLMODE=require
-ENV PGSSLMAXPROTOCOLVERSION=TLSv1.2
+# (Không cần hack OpenSSL nữa vì PHP 8.2 / Debian Bullseye xài OpenSSL 1.1.1 chuẩn tương thích)
+
 
 # Install PHP extensions
 RUN docker-php-ext-install \
