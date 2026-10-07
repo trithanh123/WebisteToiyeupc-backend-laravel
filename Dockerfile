@@ -56,9 +56,9 @@ RUN chmod -R 775 storage bootstrap/cache \
 # Expose port
 EXPOSE 8000
 
-# Start command
+# Start command - migration chạy riêng, không block server start
 CMD sh -c "php artisan config:cache && \
            php artisan route:cache && \
            php artisan view:cache && \
-           php artisan migrate --force && \
+           php artisan migrate --force || echo '=== MIGRATION FAILED - CHECK DB CONNECTION ===' && \
            php artisan serve --host=0.0.0.0 --port=8000"
