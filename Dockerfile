@@ -1,6 +1,6 @@
 FROM php:8.4-cli-alpine
 
-# Install system dependencies
+# Install system dependencies (thêm openssl + ca-certificates để fix SSL với Render PostgreSQL)
 RUN apk add --no-cache \
     postgresql-client \
     postgresql-dev \
@@ -9,7 +9,9 @@ RUN apk add --no-cache \
     unzip \
     git \
     curl \
-    oniguruma-dev
+    oniguruma-dev \
+    openssl \
+    ca-certificates
 
 # Install PHP extensions
 RUN docker-php-ext-install \
