@@ -1,17 +1,17 @@
-FROM php:8.4-cli-alpine
+FROM php:8.4-cli
 
-# Install system dependencies (thêm openssl + ca-certificates để fix SSL với Render PostgreSQL)
-RUN apk add --no-cache \
-    postgresql-client \
-    postgresql-dev \
+# Install system dependencies (Debian-based để fix SSL/TLS với Render PostgreSQL)
+RUN apt-get update && apt-get install -y \
+    libpq-dev \
     libzip-dev \
     zip \
     unzip \
     git \
     curl \
-    oniguruma-dev \
+    libonig-dev \
     openssl \
-    ca-certificates
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
 
 # Install PHP extensions
 RUN docker-php-ext-install \
