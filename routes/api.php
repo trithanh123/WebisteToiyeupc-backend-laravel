@@ -30,12 +30,12 @@ Route::get('/user', function (Request $request) {
 
 Route::get('/debug-env', function () {
     return response()->json([
-        'APP_KEY_STATUS' => env('APP_KEY') ? 'ĐÃ CÓ (OK)' : 'THIẾU (LỖI NGHIÊM TRỌNG CAUSE 500)',
+        'APP_KEY_STATUS' => env('APP_KEY') ? 'ĐÃ CÓ (OK)' : 'THIẾU',
         'APP_DEBUG_STATUS' => env('APP_DEBUG', false),
-        'DB_HOST_STATUS' => env('DB_HOST') ? 'ĐÃ CÓ' : 'THIẾU',
-        'DB_DATABASE_STATUS' => env('DB_DATABASE') ? 'ĐÃ CÓ' : 'THIẾU',
-        'DB_USERNAME_STATUS' => env('DB_USERNAME') ? 'ĐÃ CÓ' : 'THIẾU',
-        'DB_PASSWORD_STATUS' => env('DB_PASSWORD') ? 'ĐÃ CÓ' : 'THIẾU',
+        'DB_HOST_THỰC_TẾ' => env('DB_HOST', 'KHÔNG TỒN TẠI'),
+        'DB_URL_THỰC_TẾ' => env('DB_URL', 'KHÔNG TỒN TẠI'),
+        'DATABASE_URL_THỰC_TẾ' => env('DATABASE_URL', 'KHÔNG TỒN TẠI'),
+        'DB_SSLMODE_THỰC_TẾ' => env('DB_SSLMODE', 'KHÔNG TỒN TẠI'),
     ]);
 });
 
