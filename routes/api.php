@@ -41,10 +41,22 @@ Route::get('/debug-env', function () {
 
 Route::get('/debug-db', function () {
     try {
-        \Illuminate\Support\Facades\DB::connection()->getPdo();
-        return "TIN VUI: KẾT NỐI DB THÀNH CÔNG RỒI!";
+        $host = env('DB_HOST', 'dpg-d9rb53navr4c738rc30g-a.singapore-postgres.render.com');
+        $db = env('DB_DATABASE', 'toiyeupc_db');
+        $user = env('DB_USERNAME', 'toiyeupc_db_user');
+        $pass = env('DB_PASSWORD', '');
+        
+        // Cố tình dùng sslmode=prefer và gssencmode=disable trực tiếp trong chuỗi DSN
+        $dsn = "pgsql:host=$host;port=5432;dbname=$db;sslmode=prefer;gssencmode=disable";
+        
+        $pdo = new \PDO($dsn, $user, $pass, [
+            \PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION,
+            \PDO::ATTR_TIMEOUT => 10,
+        ]);
+        
+        return "TIN VUI: KẾT NỐI RAW PDO THÀNH CÔNG RỒI!";
     } catch (\Exception $e) {
-        return "LỖI DB: " . $e->getMessage();
+        return "LỖI RAW PDO: " . $e->getMessage();
     }
 });
 
