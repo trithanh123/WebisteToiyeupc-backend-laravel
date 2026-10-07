@@ -13,10 +13,12 @@ RUN apt-get update && apt-get install -y \
     ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
-# Fix SSL compatibility: OpenSSL 3.x (Debian Bookworm) có SECLEVEL=2 mặc định
-# gây SSL handshake fail với Render PostgreSQL → hạ xuống SECLEVEL=1
-RUN echo "[openssl_init]\nssl_conf = ssl_sect\n\n[ssl_sect]\nsystem_default = system_default_sect\n\n[system_default_sect]\nMinProtocol = TLSv1.2\nCipherString = DEFAULT:@SECLEVEL=1" > /etc/ssl/openssl-custom.cnf
+# Fix SSL compatibility: dùng printf để tạo newline thật (echo \n không work trong sh)
+# Force TLS 1.2 + SECLEVEL=1 để tương thích với Render PostgreSQL SSL proxy
+RUN printf 'openssl_conf = openssl_init\n\n[openssl_init]\nssl_conf = ssl_sect\n\n[ssl_sect]\nsystem_default = system_default_sect\n\n[system_default_sect]\nMinProtocol = TLSv1.2\nMaxProtocol = TLSv1.2\nCipherString = DEFAULT:@SECLEVEL=1\n' > /etc/ssl/openssl-custom.cnf
 ENV OPENSSL_CONF=/etc/ssl/openssl-custom.cnf
+ENV PGSSLMODE=require
+ENV PGSSLMAXPROTOCOLVERSION=TLSv1.2
 
 # Install PHP extensions
 RUN docker-php-ext-install \
