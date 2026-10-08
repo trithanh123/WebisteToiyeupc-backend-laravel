@@ -328,7 +328,12 @@ class ProductController extends Controller
 
             if (!$searchResponse->successful()) {
                 Log::error('[Qdrant] Python service trả về lỗi: ' . $searchResponse->body());
-                return response()->json(['error' => 'Lỗi kết nối Search Service'], 500);
+                return response()->json([
+                    'error' => 'Lỗi kết nối Search Service',
+                    'debug_status' => $searchResponse->status(),
+                    'debug_body' => $searchResponse->body(),
+                    'debug_url' => "{$pythonServiceUrl}/search"
+                ], 500);
             }
         } catch (\Exception $e) {
             Log::error('[Qdrant] Không kết nối được Python service: ' . $e->getMessage());
