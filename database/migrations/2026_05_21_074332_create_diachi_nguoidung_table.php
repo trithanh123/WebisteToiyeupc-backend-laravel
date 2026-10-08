@@ -20,11 +20,11 @@ return new class extends Migration
             $table->integer('ma_quan')->nullable();
             $table->integer('ma_phuong')->nullable();
             $table->string('diachi_chitiet', 255);
-            $table->boolean('Matudien_diachi')->default(false); 
+            $table->boolean('matudien_diachi')->default(false); 
             $table->timestamps();
 
             $table->foreign('id_nguoidung')
-                  ->references('id_NguoiDung')
+                  ->references('id_nguoidung')
                   ->on('nguoi_dung')
                   ->onDelete('cascade');
         });
