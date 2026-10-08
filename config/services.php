@@ -33,6 +33,6 @@ return [
         'redirect' => env('FACEBOOK_REDIRECT_URI', 'http://127.0.0.1:8000/api/auth/facebook/callback'),
     ],
     'python' => [
-        'search_url' => env('PYTHON_SEARCH_URL', 'http://localhost:8001'),
+        'search_url' => rtrim(env('PYTHON_SEARCH_URL', 'http://localhost:8001'), '/'),
     ],
 ];
