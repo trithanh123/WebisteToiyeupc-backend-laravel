@@ -11,7 +11,7 @@ class ThongBaoFactory extends Factory
             'loai_thong_bao' => fake()->randomElement(['ORDER', 'SYSTEM', 'PROMOTION', 'WAREHOUSE']),
             'tieu_de'        => fake()->sentence(),
             'noi_dung'       => fake()->paragraph(),
-            'da_doc'         => fake()->boolean(40), 
+            'nguoi_doc'      => '[]', 
             'link'           => fake()->optional(0.5)->url(),
         ];
     }
